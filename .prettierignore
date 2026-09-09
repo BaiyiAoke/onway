@@ -1,0 +1,6 @@
+package-lock.json
+android/
+dist/
+node_modules/
+.tools/
+artifacts/

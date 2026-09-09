@@ -1,0 +1,128 @@
+/* 顶部品牌与桌面导航 */
+.app {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 85px;
+  padding: calc(18px + var(--safe-top)) max(32px, calc((100vw - 1096px) / 2))
+    18px;
+  border-bottom: 1px solid var(--line);
+  gap: 20px;
+}
+.brand {
+  display: inline-flex;
+  gap: 9px;
+  align-items: center;
+}
+.brand > span {
+  font-size: 26px;
+  letter-spacing: -0.07em;
+  font-weight: 700;
+}
+.brandChinese {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  font-weight: 500;
+  color: var(--muted);
+  margin-left: 12px;
+}
+.nav {
+  display: flex;
+  gap: 7px;
+  padding: 4px;
+  background: #eeeee8;
+  border-radius: 30px;
+}
+.navItem {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  padding: 11px 23px;
+  font-size: 13px;
+  border-radius: 25px;
+  color: #71786e;
+}
+.active {
+  background: var(--ink);
+  color: white;
+}
+.localBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.localBadge > span {
+  height: 6px;
+  width: 6px;
+  border-radius: 50%;
+  background: #7a9276;
+}
+.main {
+  flex: 1;
+  outline: none;
+}
+.footer {
+  max-width: 1160px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 26px 32px 30px;
+  display: flex;
+  justify-content: space-between;
+  color: #8a8e84;
+  font-size: 10px;
+  gap: 15px;
+}
+.footer span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* 手机底部导航与软键盘避让 */
+@media (max-width: 700px) {
+  .header {
+    min-height: 74px;
+    padding: calc(18px + var(--safe-top)) 21px 18px;
+  }
+  .brand > span {
+    font-size: 24px;
+  }
+  .brandChinese {
+    margin-left: 9px;
+  }
+  .nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 30;
+    justify-content: space-around;
+    border-top: 1px solid var(--line);
+    border-radius: 0;
+    background: #fafaf5f5;
+    backdrop-filter: blur(14px);
+    padding: 10px 20px calc(10px + var(--safe-bottom));
+  }
+  .navItem {
+    padding: 12px 21px;
+  }
+  .app {
+    padding-bottom: calc(78px + var(--safe-bottom));
+  }
+  .keyboardOpen {
+    display: none;
+  }
+  .footer {
+    padding: 22px 20px;
+  }
+  .footer > span:last-child {
+    display: none;
+  }
+}

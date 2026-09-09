@@ -1,0 +1,77 @@
+/* 计划摘要与地点卡片 */
+.intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  background: #eaeee2;
+}
+.intro p {
+  margin-bottom: 0;
+  font-size: 13px;
+}
+.list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+  margin: 24px 0;
+}
+.place {
+  display: flex;
+  align-items: center;
+  gap: 25px;
+}
+.index {
+  font-size: 32px;
+  color: #9ca991;
+  font-weight: 300;
+}
+.place > div {
+  flex: 1;
+}
+.place p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+.place .coordinates {
+  font-size: 10px;
+  margin-top: 9px;
+  letter-spacing: 0.04em;
+}
+.place a {
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.notice {
+  display: flex;
+  gap: 15px;
+  padding: 20px 10px;
+  color: #64725c;
+}
+.notice svg {
+  flex-shrink: 0;
+}
+.notice p {
+  font-size: 13px;
+  color: var(--muted);
+}
+@media (max-width: 700px) {
+  .intro {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .place {
+    flex-wrap: wrap;
+    gap: 15px;
+  }
+  .place a {
+    margin-left: 51px;
+  }
+  .place > div {
+    min-width: 190px;
+  }
+}

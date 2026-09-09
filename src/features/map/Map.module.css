@@ -1,0 +1,110 @@
+/* 地图画布与状态覆盖层 */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 285px;
+  gap: 20px;
+  align-items: start;
+}
+.mapCard {
+  height: 550px;
+  position: relative;
+  border: 1px solid #dfe3d8;
+  border-radius: 24px;
+  overflow: hidden;
+  background: #e7eade;
+}
+.canvas {
+  position: absolute;
+  inset: 0;
+}
+.marker {
+  border: 3px solid #fffefa;
+  border-radius: 50%;
+  background: #3f5e49;
+  color: white;
+  height: 39px;
+  width: 39px;
+  box-shadow: 0 3px 12px #273d3933;
+  font-size: 13px;
+}
+.fit {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  border: 1px solid #e0e4d9;
+  background: #fffefa;
+  border-radius: 12px;
+  width: 43px;
+  height: 43px;
+  display: grid;
+  place-items: center;
+}
+.loading,
+.error {
+  position: absolute;
+  top: 17px;
+  left: 17px;
+  right: 73px;
+  border-radius: 14px;
+  background: #fffefaf2;
+  padding: 16px;
+  font-size: 12px;
+}
+.error {
+  top: 80px;
+  right: 17px;
+  box-shadow: 0 6px 30px #273d3910;
+}
+.error p {
+  margin-top: 7px;
+  color: var(--muted);
+}
+.places ol {
+  list-style: none;
+  padding: 0;
+  margin-top: 28px;
+}
+.places li {
+  display: flex;
+  gap: 13px;
+  align-items: center;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+}
+.places li > span {
+  color: #839577;
+  font-size: 12px;
+}
+.places li > div {
+  flex: 1;
+}
+.places li > svg {
+  color: #9aa68f;
+}
+.places li p {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 0;
+}
+.note {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 25px 0 0;
+}
+/* 手机上地图优先，地点列表保持可读 */
+@media (max-width: 850px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  .mapCard {
+    height: 470px;
+  }
+  .places {
+    padding: 22px;
+  }
+}
+@media (max-width: 700px) {
+  .mapCard {
+    height: 430px;
+  }
+}

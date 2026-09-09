@@ -1,0 +1,248 @@
+/* 风景主卡片：纯 CSS 绘制，随 APK 离线可用 */
+.hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: 306px;
+  border-radius: 26px;
+  background: #e5e8dc;
+  overflow: hidden;
+  margin-bottom: 24px;
+  position: relative;
+}
+.heroContent {
+  position: relative;
+  z-index: 2;
+  padding: 35px 39px;
+}
+.heroTag {
+  color: #5f6e58;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+.heroContent h2 {
+  margin: 20px 0 13px;
+  font-size: clamp(29px, 3.5vw, 39px);
+  line-height: 1.5;
+  font-weight: 500;
+}
+.heroContent p {
+  font-size: 12px;
+  color: #66735d;
+  letter-spacing: 0.08em;
+}
+.heroLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 30px;
+  font-size: 12px;
+  border-bottom: 1px solid #a7b19b;
+  padding: 10px 0 8px;
+}
+.landscape {
+  position: relative;
+  overflow: hidden;
+}
+.sun {
+  position: absolute;
+  width: 94px;
+  height: 94px;
+  border-radius: 50%;
+  background: #f9f6dc;
+  top: 32px;
+  right: 29%;
+}
+.ridgeBack {
+  position: absolute;
+  inset: 75px -35px -2px -30px;
+  background: #bac7ac;
+  clip-path: polygon(
+    0 61%,
+    18% 37%,
+    31% 58%,
+    51% 7%,
+    63% 38%,
+    77% 23%,
+    100% 57%,
+    100% 100%,
+    0 100%
+  );
+}
+.ridgeFront {
+  position: absolute;
+  inset: 130px -45px -2px -35px;
+  background: #889e7d;
+  clip-path: polygon(
+    0 58%,
+    19% 24%,
+    44% 62%,
+    68% 16%,
+    100% 56%,
+    100% 100%,
+    0 100%
+  );
+}
+.road {
+  position: absolute;
+  height: 170px;
+  width: 105px;
+  border: 17px solid #eceddf;
+  border-top: 0;
+  border-bottom: 0;
+  border-left: 0;
+  border-radius: 50%;
+  bottom: -70px;
+  left: 39%;
+  transform: rotate(-30deg);
+}
+.landscapeLabel {
+  position: absolute;
+  bottom: 18px;
+  right: 20px;
+  font-size: 8px;
+  letter-spacing: 0.15em;
+  color: #f4f5e9;
+}
+/* 地点列表与备注 */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  gap: 24px;
+}
+.sectionHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 21px;
+}
+.sectionHeading h2 {
+  margin-bottom: 0;
+}
+.sectionHeading .eyebrow {
+  margin-bottom: 8px;
+}
+.placeList {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.placeList li {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid #eeeee7;
+}
+.placeList li > div {
+  flex: 1;
+}
+.placeList p {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 0;
+}
+.number {
+  font-size: 12px;
+  color: #718166;
+  background: #edf0e5;
+  border-radius: 50%;
+  width: 35px;
+  height: 35px;
+  display: grid;
+  place-items: center;
+}
+.textLink {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 18px;
+  font-size: 12px;
+  color: #5e6d55;
+}
+.notes {
+  display: flex;
+  flex-direction: column;
+}
+.notes textarea {
+  flex: 1;
+  min-height: 172px;
+  width: 100%;
+  resize: vertical;
+  border: 1px solid #e7e8df;
+  background: #f8f8f3;
+  border-radius: 15px;
+  padding: 17px;
+  color: #4f584a;
+  font-size: 14px;
+  line-height: 1.9;
+}
+.noteActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+}
+.hint {
+  color: var(--muted);
+  font-size: 11px;
+}
+.error {
+  color: #a24031;
+  font-size: 12px;
+}
+.bottomNotes {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  margin-top: 23px;
+  font-size: 11px;
+  color: #82877a;
+}
+.bottomNotes span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+/* 手机堆叠与表单可读性 */
+@media (max-width: 700px) {
+  .hero {
+    min-height: 270px;
+    grid-template-columns: 1fr;
+  }
+  .heroContent {
+    padding: 26px;
+  }
+  .heroContent h2 {
+    font-size: 29px;
+  }
+  .landscape {
+    position: absolute;
+    inset: 0 0 0 35%;
+    opacity: 0.55;
+  }
+  .heroContent {
+    background: linear-gradient(90deg, #e5e8dc 15%, transparent 85%);
+  }
+  .landscapeLabel {
+    display: none;
+  }
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .notes textarea {
+    font-size: 16px;
+  }
+  .bottomNotes {
+    flex-direction: column;
+    line-height: 1.6;
+  }
+  .noteActions {
+    align-items: flex-start;
+  }
+  .noteActions .hint,
+  .noteActions .error {
+    padding-top: 7px;
+  }
+}
