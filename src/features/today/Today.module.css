@@ -24,6 +24,7 @@
   font-size: clamp(29px, 3.5vw, 39px);
   line-height: 1.5;
   font-weight: 500;
+  overflow-wrap: anywhere;
 }
 .heroContent p {
   font-size: 12px;
@@ -102,6 +103,42 @@
   letter-spacing: 0.15em;
   color: #f4f5e9;
 }
+/* 行程概览与首日预览 */
+.tripStats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 0 24px;
+}
+.tripStats > div {
+  background: #eeeee7;
+  border-radius: 16px;
+  padding: 16px 20px;
+}
+.tripStats dt {
+  color: var(--muted);
+  font-size: 12px;
+}
+.tripStats dd {
+  margin: 8px 0 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+.tripStats dd span {
+  margin-left: 7px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+.previewHint,
+.emptyHint {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.8;
+}
+.emptyHint {
+  padding: 15px 0;
+}
 /* 地点列表与备注 */
 .grid {
   display: grid;
@@ -127,14 +164,23 @@
   list-style: none;
 }
 .placeList li {
+  border-bottom: 1px solid #eeeee7;
+}
+.placeLink {
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 14px 0;
-  border-bottom: 1px solid #eeeee7;
+  min-height: 62px;
 }
-.placeList li > div {
+.placeLink > div {
   flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.placeLink > svg,
+.placeLink .number {
+  flex-shrink: 0;
 }
 .placeList p {
   font-size: 11px;
@@ -226,6 +272,16 @@
   }
   .landscapeLabel {
     display: none;
+  }
+  .tripStats {
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .tripStats > div {
+    padding: 14px 11px;
+  }
+  .tripStats dt {
+    font-size: 10px;
   }
   .grid {
     grid-template-columns: 1fr;

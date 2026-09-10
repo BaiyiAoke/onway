@@ -1,10 +1,56 @@
-# 新增文件清单
+# 工程文件清单
 
-独立初始化产生的源码、配置、原生工程及文档。构建产物、安装包下载缓存、node_modules 和机器路径不纳入版本管理。源码由 Git 管理，主分支为 `main`。
+以下清单对应 v0.2 相对初始化版本的新增与修改，主分支为 main。构建产物、测试截图、node_modules 和机器路径均被忽略。
+
+## v0.2 新增文件
+
+- `docs/verification-v0.2.md`
+- `src/components/BackHandler.tsx`
+- `src/components/EditPanel.module.css`
+- `src/components/EditPanel.tsx`
+- `src/features/plan/PlanPage.test.tsx`
+- `src/features/today/TodayPage.test.tsx`
+- `src/features/travel/PlaceEditor.test.tsx`
+- `src/features/travel/PlaceEditor.tsx`
+- `src/features/travel/Travel.module.css`
+- `src/features/travel/TravelSaveFeedback.tsx`
+- `src/features/travel/TravelToolbar.tsx`
+- `src/services/travel/TravelContext.test.tsx`
+- `src/services/travel/TravelContext.tsx`
+- `src/services/travel/model.test.ts`
+- `src/services/travel/model.ts`
+- `src/services/travel/repository.test.ts`
+- `src/services/travel/repository.ts`
+- `src/services/travel/types.ts`
+
+## v0.2 修改文件
+
+- `README.md`
+- `android/app/build.gradle`
+- `android/variables.gradle`
+- `docs/android.md`
+- `docs/architecture.md`
+- `docs/file-inventory.md`
+- `package-lock.json`
+- `package.json`
+- `src/app/App.tsx`
+- `src/features/map/Map.module.css`
+- `src/features/map/MapPage.test.tsx`
+- `src/features/map/MapPage.tsx`
+- `src/features/plan/Plan.module.css`
+- `src/features/plan/PlanPage.tsx`
+- `src/features/today/NoteEditor.test.tsx`
+- `src/features/today/NoteEditor.tsx`
+- `src/features/today/Today.module.css`
+- `src/features/today/TodayPage.tsx`
+- `src/styles/global.css`
+
+## 完整工程文件
 
 - `.gitignore`
 - `.prettierignore`
 - `.prettierrc.json`
+- `README.md`
 - `android/.gitignore`
 - `android/app/.gitignore`
 - `android/app/build.gradle`
@@ -28,23 +74,23 @@
 - `android/app/src/main/res/drawable/onway_icon.xml`
 - `android/app/src/main/res/drawable/splash.png`
 - `android/app/src/main/res/layout/activity_main.xml`
-- `android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml`
 - `android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml`
+- `android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml`
+- `android/app/src/main/res/mipmap-hdpi/ic_launcher.png`
 - `android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png`
 - `android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png`
-- `android/app/src/main/res/mipmap-hdpi/ic_launcher.png`
+- `android/app/src/main/res/mipmap-mdpi/ic_launcher.png`
 - `android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png`
 - `android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png`
-- `android/app/src/main/res/mipmap-mdpi/ic_launcher.png`
+- `android/app/src/main/res/mipmap-xhdpi/ic_launcher.png`
 - `android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png`
 - `android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png`
-- `android/app/src/main/res/mipmap-xhdpi/ic_launcher.png`
+- `android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png`
 - `android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png`
 - `android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png`
-- `android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png`
+- `android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png`
 - `android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png`
 - `android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png`
-- `android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png`
 - `android/app/src/main/res/values/ic_launcher_background.xml`
 - `android/app/src/main/res/values/strings.xml`
 - `android/app/src/main/res/values/styles.xml`
@@ -63,26 +109,36 @@
 - `docs/android.md`
 - `docs/architecture.md`
 - `docs/file-inventory.md`
+- `docs/verification-v0.2.md`
 - `docs/verification.md`
 - `eslint.config.js`
 - `index.html`
 - `package-lock.json`
 - `package.json`
-- `README.md`
 - `scripts/build-android.ps1`
 - `src/app/App.module.css`
 - `src/app/App.tsx`
+- `src/components/BackHandler.tsx`
+- `src/components/EditPanel.module.css`
+- `src/components/EditPanel.tsx`
 - `src/components/ErrorBoundary.tsx`
 - `src/data/demo.ts`
 - `src/features/map/Map.module.css`
 - `src/features/map/MapPage.test.tsx`
 - `src/features/map/MapPage.tsx`
 - `src/features/plan/Plan.module.css`
+- `src/features/plan/PlanPage.test.tsx`
 - `src/features/plan/PlanPage.tsx`
 - `src/features/today/NoteEditor.test.tsx`
 - `src/features/today/NoteEditor.tsx`
 - `src/features/today/Today.module.css`
+- `src/features/today/TodayPage.test.tsx`
 - `src/features/today/TodayPage.tsx`
+- `src/features/travel/PlaceEditor.test.tsx`
+- `src/features/travel/PlaceEditor.tsx`
+- `src/features/travel/Travel.module.css`
+- `src/features/travel/TravelSaveFeedback.tsx`
+- `src/features/travel/TravelToolbar.tsx`
 - `src/main.tsx`
 - `src/services/routes/types.ts`
 - `src/services/storage/android.ts`
@@ -90,6 +146,13 @@
 - `src/services/storage/types.ts`
 - `src/services/storage/web.test.ts`
 - `src/services/storage/web.ts`
+- `src/services/travel/TravelContext.test.tsx`
+- `src/services/travel/TravelContext.tsx`
+- `src/services/travel/model.test.ts`
+- `src/services/travel/model.ts`
+- `src/services/travel/repository.test.ts`
+- `src/services/travel/repository.ts`
+- `src/services/travel/types.ts`
 - `src/styles/global.css`
 - `src/test/setup.ts`
 - `tsconfig.json`

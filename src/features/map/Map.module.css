@@ -1,7 +1,7 @@
 /* 地图画布与状态覆盖层 */
 .layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 285px;
+  grid-template-columns: minmax(0, 1fr) 300px;
   gap: 20px;
   align-items: start;
 }
@@ -17,6 +17,9 @@
   position: absolute;
   inset: 0;
 }
+.picking .canvas {
+  cursor: crosshair;
+}
 .marker {
   border: 3px solid #fffefa;
   border-radius: 50%;
@@ -26,6 +29,14 @@
   width: 39px;
   box-shadow: 0 3px 12px #273d3933;
   font-size: 13px;
+}
+.temporary {
+  display: grid;
+  place-items: center;
+  background: #9a7145;
+  border-style: dashed;
+  font-size: 23px;
+  pointer-events: none;
 }
 .fit {
   position: absolute;
@@ -40,7 +51,8 @@
   place-items: center;
 }
 .loading,
-.error {
+.error,
+.hint {
   position: absolute;
   top: 17px;
   left: 17px;
@@ -59,32 +71,143 @@
   margin-top: 7px;
   color: var(--muted);
 }
+.hint {
+  padding: 12px;
+  pointer-events: none;
+  width: fit-content;
+  max-width: calc(100% - 90px);
+}
+/* 行程引导、选点提示与地点弹窗 */
+.emptyTrip,
+.pickBanner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding: 18px;
+  background: #edf0e7;
+  border-radius: 16px;
+  font-size: 13px;
+}
+.emptyTrip > div,
+.pickBanner > div {
+  flex: 1;
+}
+.emptyTrip p,
+.pickBanner p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+.pickBanner {
+  background: #f0e9da;
+}
+.pickBanner > svg {
+  flex-shrink: 0;
+}
+.pickBanner button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  border: 0;
+  background: transparent;
+  white-space: nowrap;
+  color: var(--ink);
+  min-height: 44px;
+}
+.popup {
+  font:
+    13px/1.6 'Segoe UI',
+    'Microsoft YaHei',
+    sans-serif;
+  padding: 7px 5px 3px;
+  min-width: 170px;
+  overflow-wrap: anywhere;
+}
+.popup strong {
+  display: block;
+  font-size: 15px;
+  padding-right: 14px;
+}
+.popup span {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 3px;
+}
+.popup p {
+  white-space: pre-wrap;
+  max-height: 135px;
+  overflow-y: auto;
+  margin: 10px 0;
+}
+.popupEdit {
+  background: var(--ink);
+  color: white;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 13px;
+  min-height: 40px;
+}
+/* 地点清单在底图失效时依然可操作 */
+.places {
+  min-width: 0;
+}
+.places h2 > span {
+  font-size: 13px;
+  color: var(--muted);
+  margin-left: 4px;
+}
 .places ol {
   list-style: none;
   padding: 0;
-  margin-top: 28px;
+  margin: 18px 0 0;
 }
 .places li {
   display: flex;
-  gap: 13px;
+  gap: 11px;
   align-items: center;
-  padding: 18px 0;
+  padding: 16px 0;
   border-bottom: 1px solid var(--line);
 }
-.places li > span {
+.order {
   color: #839577;
   font-size: 12px;
 }
 .places li > div {
   flex: 1;
-}
-.places li > svg {
-  color: #9aa68f;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .places li p {
   font-size: 11px;
   color: var(--muted);
   margin: 0;
+}
+.places li .placeNote {
+  color: #545f51;
+  margin-top: 5px;
+  white-space: pre-wrap;
+}
+.edit {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #f8f8f3;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.emptyPlaces {
+  padding: 30px 0 4px;
+  color: var(--muted);
+}
+.emptyPlaces p {
+  font-size: 13px;
+  margin-top: 12px;
 }
 .note {
   font-size: 11px;
@@ -107,4 +230,26 @@
   .mapCard {
     height: 430px;
   }
+  .emptyTrip {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .pickBanner {
+    gap: 9px;
+    padding: 14px;
+    align-items: flex-start;
+  }
+  .pickBanner > svg {
+    display: none;
+  }
+  .pickBanner button {
+    padding: 0;
+    font-size: 12px;
+  }
+}
+.toolbarLock {
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
 }

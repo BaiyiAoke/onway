@@ -2,44 +2,61 @@
 
 ## 模块边界
 
-- `src/app`：路由、导航和 Android 返回键。
-- `src/features`：今天、地图、计划页面；只通过统一接口使用存储。
-- `src/components`：共享错误边界。
-- `src/data`：带来源链接的公开示例地点，不引用 TREK 私有数据。
-- `src/services/storage`：LocalStore 契约及 Web、Android 适配器。
-- `src/services/routes`：未来驾车路线服务的类型契约。
-- `src/styles`：共享视觉变量与全局基础样式；功能样式由 CSS Modules 管理。
+- `src/app`：Hash 路由、导航、平台交互和 Provider 装配。
+- `src/features`：今天、地图、计划页面，以及共享的行程工具栏和地点编辑表单。
+- `src/components`：编辑面板、删除确认、Android 返回处理注册表与错误边界。
+- `src/services/travel`：旅行类型、纯数据操作、日期辅助方法、TravelRepository 和 React Context。
+- `src/services/storage`：异步 LocalStore 契约及 Web／Android 适配器。
+- `src/services/routes`：未来驾车路线服务的类型契约；当前没有实现。
+- `src/data`：带公开资料来源链接的示例地点，不读取 TREK 用户数据。
+- `src/styles`：共享 CSS 变量与基础样式；功能样式由 CSS Modules 管理。
 - `android`：Capacitor 原生工程；构建输出、机器路径和同步后的 Web 资源不入库。
 
-## 本地数据
+## 本地数据与保存流程
 
-`LocalStore.initialize/get/set` 全部异步；值采用字符串。当前仅使用 `demo.travel-note`，不提前建完整行程表。
+`LocalStore.initialize/get/set` 全部异步，值采用字符串。Web 数据库为 `onway-local`，Android 数据库文件为 `onwaySQLite.db`。两端都保留 v1 `entries` 键值表；SQLite 打开连接前通过 `addUpgradeStatement` 显式注册建表迁移，以参数化 SQL 写入。
 
-Web 数据库 `onway-local` 的版本 1 包含 `entries` 表，主键为 key；初始化事务只插入缺失的默认备注。Android 使用原生 SQLite 的同名键值表，连接版本为 1，并在打开连接前通过 addUpgradeStatement 注册 v1 建表迁移，使 user_version 确实写入 1；以参数化 SQL 写入，`INSERT OR IGNORE` 防止覆盖原备注。
+| 键                 | 用途                                         |
+| ------------------ | -------------------------------------------- |
+| `demo.travel-note` | v0.1 延续的独立个人备注，UI 改名但存储键不变 |
+| `travel.workspace` | v0.2 全部行程与当前行程 ID 的单个 JSON 文档  |
 
-后续迁移：Dexie 新增版本；Android 使用 SQLite 插件的 `addUpgradeStatement` 注册增量迁移，再提升连接版本。不得删除旧数据重建数据库来完成升级。
+个人备注初始化只在键不存在时插入默认内容，已有备注（包括空字符串）不会被覆盖。首次读不到旅行文档时返回空工作区，不自动写入示例；用户在计划页点击示例按钮后，才创建包含新 ID 的可编辑副本。
 
-初始化失败允许重新读取；写入失败保留当前输入，不伪装保存成功，也不降级到内存存储。备注需要主动保存；页面切换前应保存。浏览器离开页面时对未保存修改进行提示，但移动系统强制结束进程无法拦截。
+旅行文档使用独立的 `schemaVersion: 1`，与数据库表版本分离。`Trip` 包含名称、可空出发日期、有序 `TripDay[]` 和未安排地点；`TripDay` 包含稳定 ID 与有序地点；`TripPlace` 包含稳定 ID、名称、备注、WGS84 坐标和可选来源链接。当前行程 ID 保存在文档中；“全部／未安排／第 N 天”的筛选是共享界面状态，切换行程或删除所选天后回到全部。
 
-## 地图与路线
+一次旅行操作流程：
 
-MapLibre GL JS 在地图路由中按需加载，底图使用 `https://tiles.openfreemap.org/styles/positron`，保持供应商署名。地图实例、ResizeObserver、标记与网络状态监听均随组件清理。
+1. 页面提交 `TravelAction`；纯数据函数在工作区副本上创建、修改、移动、排序或删除。
+2. `TravelRepository` 串行执行操作，校验持久化快照未被其他页面更改，校验新文档后整体写入一个键。
+3. 仅在写入成功后更新仓库快照，Context 再发布新的工作区给各页面；失败时保留原已保存快照，表单保留输入并显示错误。
 
-底图或瓦片报错显示重试；20 秒未完成初始化也显示错误；重试销毁旧实例再创建。地图失败不影响地点列表与备注。未申请定位权限，不连接搜索或算路公共服务。
+文档读取会校验 JSON、版本、ID 唯一性、日期、坐标与当前行程引用。损坏或不支持的文档会提示错误并保留原始数据，不以空工作区覆盖，也不降级到内存存储。后续文档迁移必须在 `migrateWorkspaceDocument` 中显式增加版本分支；若确需升级表结构，再分别使用 Dexie 新版本和 SQLite 增量迁移，不删除旧库重建。
 
-`RouteService.calculateDrivingRoute` 接收按顺序排列的 WGS84 地点与可选 AbortSignal。未来实现必须校验至少两个合法点；返回 GeoJSON LineString（经度在前）、总距离米数、总时长秒数和按输入顺序对应的分段结果、来源与 ISO 格式计算时间。当前没有实现类或伪造结果。
+Web 写入使用 `navigator.locks`（环境支持时）包住读取、比较、写入，避免两个标签同时通过旧快照检查。检测到其他页面写入后，当前操作拒绝保存并提示重新加载，不自动覆盖或合并。编辑面板提供具体错误原因与保留草稿的重新读取入口；重新读取会保持正在编辑的行程，若它已被其他页面删除则保留输入并要求关闭面板后读取，不自动重建。没有 Web Locks 的环境仍有单实例队列和旧快照检查，但不能保证两个标签完全同时写入时无竞争，建议只使用一个编辑标签。Context 的更新只同步当前应用实例内的页面，不是跨标签自动推送。
 
-## 平台边界
+地点在一个行程内只属于某一天或未安排；跨组移动保留 ID，追加到目标列表末尾，同组编辑保留原位置。删除一天时将其地点依序移到未安排末尾，至少保留一天；删除行程不影响其他行程或独立个人备注。日期按本地日历日取“今天”，日期加减使用 UTC 日历运算避免夏令时偏移；修改出发日期不移动或删除地点。
 
-Capacitor `webDir` 指向 `dist`，不配置 `server.url`。Hash 路由同时适用于浏览器和 APK 本地资源。后端、账号、云同步、PWA、文件互导和离线底图下载均不在当前版本。
+## 地图与编辑交互
 
-视觉是自行绘制的基础样式与 CSS 风景插画，不复制 TREK 源码、标识或图片。
+MapLibre GL JS 在地图路由中按需加载，使用 OpenFreeMap Positron 并保留地图署名。无行程时引导创建，无地点时展示中国范围，不主动读取设备位置。
 
-## 构建注意事项
+地图实例生命周期与组件挂载、重试相关；旅行数据和筛选变化只更新标记，不反复创建地图。已有标记的点击与底图空白点击分别处理：标记打开地点详情，空白位置生成临时标记并打开新增表单。地图保存分组默认沿用当前筛选天，全部或未安排视图默认放入未安排。重新选点携带原草稿，保存后才替换坐标；取消不会写入新增地点。
 
-MapLibre 6 的 Worker 通过 Vite 的 `?worker&url` 显式打包，并使用 ES 模块格式。缺少此配置时，生产页面可能只有标记而没有底图。地图代码与 Worker 均随 APK 内置；瓦片、字体和样式仍需要网络。
+底图或瓦片报错、断网或初始化超时会显示错误与重试入口；重试释放旧实例后创建，离开页面时清理实例、标记、观察器与监听器。地点列表独立于地图加载状态，地图失败仍可编辑已有地点名称、备注、所属天与顺序；新增和重新选点需要可用底图。
 
-地图引擎单个压缩后 JS 分块约 1 MB，构建会提示超过 500 kB。这部分已经按地图路由延迟加载，不影响今天页启动；暂不为消除提示而拆散引擎内部模块。
+编辑面板在手机底部显示、桌面以弹窗显示。Android 返回由注册表按最上层优先处理，编辑面板遇到未保存修改先确认是否放弃，地图重新选点也可取消；无上层交互时再执行页面返回或退出。个人备注保留独立手动保存及浏览器离开提醒；主导航和 Android 返回会先确认未保存修改，保存进行中会拦截离开。页面内部快捷链接切换前仍应主动保存，系统强制结束进程无法拦截。
 
-`package.json` 对 Capacitor CLI 间接依赖 `xcode` 的 `uuid` 覆盖到兼容其 `v4` 调用的 11.x，以消除旧版安全公告；已做 API 冒烟验证。此覆盖只影响构建工具，不进入 Android 运行逻辑。升级 Capacitor 时应重新检查是否仍需保留。
-Android 对 SQLite 插件间接引入的 security-crypto 1.1.0-alpha06 统一解析为稳定版 1.1.0，避免预发布依赖。依据：[AndroidX 官方稳定版记录](https://developer.android.google.cn/jetpack/androidx/versions/stable-channel#july_31_2025)。
+`RouteService.calculateDrivingRoute` 接收按顺序排列的 WGS84 地点与可选 AbortSignal。后续实现返回 GeoJSON LineString（经度在前）、总距离米数、总时长秒数、分段结果、来源与计算时间。当前只保存每天地点顺序，没有接入 OSRM 或其他算路服务，不生成虚构距离或耗时。
+
+## 平台与构建
+
+Capacitor `webDir` 指向 `dist`，不配置 `server.url`；Hash 路由适用于浏览器和 APK 本地资源。Android 最低 API 31、编译／目标 API 36，v0.2 `versionCode` 为 2，包名仍为 `app.onway.personal`。
+
+APK 内置页面和本地存储能力，断网可管理已有数据；底图、瓦片与字体在线加载。Web 没有 Service Worker，不承诺离线冷启动。当前不引入后端、账号、云同步、文件互导、定位、地点搜索或离线地图下载。
+
+MapLibre 6 Worker 通过 Vite 的 `?worker&url` 显式打包并使用 ES 模块格式，缺少此配置可能导致生产页面只有标记而没有底图。地图引擎分块约 1 MB，会产生超过 500 kB 的构建提示；该分块按地图路由延迟加载，不为了消除提示拆散引擎内部模块。
+
+`package.json` 将 Capacitor CLI 间接依赖 `xcode` 的 `uuid` 覆盖到兼容其 `v4` 调用的 11.x；该覆盖仅影响构建工具，升级 Capacitor 时需复核。Android 对 SQLite 插件间接引入的 `security-crypto` 预发布依赖统一解析为稳定版 1.1.0，依据：[AndroidX 官方稳定版记录](https://developer.android.google.cn/jetpack/androidx/versions/stable-channel#july_31_2025)。
+
+视觉使用自行编写的样式与 CSS 风景插画，不复制 TREK 源码、品牌或图片。

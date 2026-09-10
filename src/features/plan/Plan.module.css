@@ -1,4 +1,4 @@
-/* 计划摘要与地点卡片 */
+/* 行程摘要与空状态 */
 .intro {
   display: flex;
   align-items: center;
@@ -6,59 +6,144 @@
   gap: 20px;
   background: #eaeee2;
 }
+.intro h2 {
+  overflow-wrap: anywhere;
+}
 .intro p {
   margin-bottom: 0;
   font-size: 13px;
 }
+.intro .eyebrow {
+  font-size: 10px;
+  margin-bottom: 8px;
+}
+.actions,
+.dayActions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.dayActions {
+  justify-content: space-between;
+  margin: 22px 0;
+}
+.empty {
+  text-align: center;
+  padding: 65px 25px;
+  color: var(--muted);
+}
+.empty h2 {
+  color: var(--ink);
+  margin-top: 20px;
+}
+.empty .actions {
+  justify-content: center;
+  margin-top: 25px;
+}
+/* 每天的有序地点与移动操作 */
+.daySection {
+  margin-top: 20px;
+}
+.dayHeading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.dayHeading h2 {
+  font-size: 19px;
+}
+.dayHeading p {
+  margin-bottom: 6px;
+}
 .list {
   list-style: none;
   padding: 0;
-  display: grid;
-  gap: 14px;
-  margin: 24px 0;
+  margin: 8px 0 0;
 }
 .place {
   display: flex;
-  align-items: center;
-  gap: 25px;
+  align-items: flex-start;
+  gap: 18px;
+  border-top: 1px solid var(--line);
+  padding: 24px 0;
+}
+.place:first-child {
+  border-top: 0;
+}
+.place:last-child {
+  padding-bottom: 0;
 }
 .index {
-  font-size: 32px;
+  font-size: 25px;
   color: #9ca991;
   font-weight: 300;
+  flex-shrink: 0;
+  width: 36px;
 }
-.place > div {
+.placeMain {
   flex: 1;
+  min-width: 0;
 }
-.place p {
-  margin: 0;
+.placeMain h3 {
+  overflow-wrap: anywhere;
+}
+.placeMain p {
   font-size: 13px;
   color: var(--muted);
+  margin: 6px 0 8px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
-.place .coordinates {
-  font-size: 10px;
-  margin-top: 9px;
-  letter-spacing: 0.04em;
-}
-.place a {
-  font-size: 11px;
+.placeLinks {
   display: flex;
-  align-items: center;
-  gap: 4px;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 10px;
+}
+.placeTools {
+  display: grid;
+  gap: 8px;
+  justify-items: end;
+  width: 175px;
+  flex-shrink: 0;
+}
+.placeTools select {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  min-height: 42px;
+  color: var(--ink);
+  background: #fffefa;
+  font: inherit;
+  font-size: 12px;
+}
+.iconActions {
+  display: flex;
+  gap: 7px;
+}
+.emptyDay {
+  padding: 28px 0 8px;
+  color: var(--muted);
+  text-align: center;
+}
+.emptyDay p {
+  margin: 8px 0;
+  font-size: 13px;
 }
 .notice {
   display: flex;
-  gap: 15px;
-  padding: 20px 10px;
-  color: #64725c;
+  gap: 12px;
+  color: var(--muted);
+  margin: 25px 0 5px;
+  font-size: 12px;
 }
 .notice svg {
   flex-shrink: 0;
 }
-.notice p {
-  font-size: 13px;
-  color: var(--muted);
-}
+/* 窄屏下将排序及分天操作放到地点文字下方 */
 @media (max-width: 700px) {
   .intro {
     align-items: flex-start;
@@ -66,12 +151,29 @@
   }
   .place {
     flex-wrap: wrap;
-    gap: 15px;
+    gap: 12px;
   }
-  .place a {
-    margin-left: 51px;
+  .placeMain {
+    width: calc(100% - 48px);
   }
-  .place > div {
-    min-width: 190px;
+  .placeTools {
+    width: calc(100% - 48px);
+    margin-left: 48px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .placeTools select {
+    width: auto;
+    max-width: 100%;
+    flex: 1;
+    min-width: 115px;
+  }
+  .dayHeading {
+    align-items: flex-start;
+  }
+  .dayHeading h2 {
+    font-size: 17px;
   }
 }

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Check, LoaderCircle, Save } from 'lucide-react'
 import { getLocalStore } from '../../services/storage'
+import { useBackHandler } from '../../components/BackHandler'
+import { EditPanel } from '../../components/EditPanel'
 import { NOTE_KEY, type LocalStore } from '../../services/storage/types'
 import styles from './Today.module.css'
 
@@ -15,7 +17,18 @@ export function NoteEditor({
     'loading' | 'ready' | 'saving' | 'saved' | 'loadError' | 'saveError'
   >('loading')
   const [retry, setRetry] = useState(0)
+  const [confirmDiscard, setConfirmDiscard] = useState(false)
   const storeRef = useRef<LocalStore | null>(null)
+  const dirty = note !== savedNote
+
+  // 主导航和 Android 返回共用注册表；未保存时先询问，不让 exitApp 直接丢弃草稿。
+  useBackHandler(
+    () => {
+      if (status !== 'saving') setConfirmDiscard(true)
+      return true
+    },
+    dirty || status === 'saving',
+  )
 
   useEffect(() => {
     let active = true
@@ -64,12 +77,12 @@ export function NoteEditor({
       <div className={styles.sectionHeading}>
         <div>
           <p className="eyebrow">留给自己的提醒</p>
-          <h2 id="note-title">示例旅行备注</h2>
+          <h2 id="note-title">个人备注</h2>
         </div>
         <span className="tag">仅当前设备</span>
       </div>
       <label className="srOnly" htmlFor="travel-note">
-        示例旅行备注
+        个人备注
       </label>
       <textarea
         id="travel-note"
@@ -128,6 +141,34 @@ export function NoteEditor({
           </button>
         )}
       </div>
+      {confirmDiscard && (
+        <EditPanel
+          title="个人备注尚未保存"
+          onClose={() => setConfirmDiscard(false)}
+        >
+          <p className="muted">
+            继续编辑可以保留当前输入；放弃后将恢复为最近保存的备注。
+          </p>
+          <div className={styles.noteActions}>
+            <button
+              className="secondaryButton"
+              onClick={() => setConfirmDiscard(false)}
+            >
+              继续编辑
+            </button>
+            <button
+              className="dangerButton"
+              onClick={() => {
+                setNote(savedNote)
+                setStatus('ready')
+                setConfirmDiscard(false)
+              }}
+            >
+              放弃修改
+            </button>
+          </div>
+        </EditPanel>
+      )}
     </section>
   )
 }

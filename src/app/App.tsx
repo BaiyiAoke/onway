@@ -21,6 +21,8 @@ import { TodayPage } from '../features/today/TodayPage'
 import { PlanPage } from '../features/plan/PlanPage'
 import { ErrorBoundary } from '../components/ErrorBoundary'
 import styles from './App.module.css'
+import { BackHandlerProvider, useBackRegistry } from '../components/BackHandler'
+import { TravelProvider } from '../services/travel/TravelContext'
 
 const MapPage = lazy(() => import('../features/map/MapPage'))
 const links = [
@@ -30,14 +32,30 @@ const links = [
 ]
 
 export function App() {
+  return (
+    <BackHandlerProvider>
+      <TravelProvider>
+        <AppShell />
+      </TravelProvider>
+    </BackHandlerProvider>
+  )
+}
+
+function AppShell() {
+  const backRegistry = useBackRegistry()
   const location = useLocation()
   const navigate = useNavigate()
   const [keyboardOpen, setKeyboardOpen] = useState(false)
 
   useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [location.pathname])
+
+  useEffect(() => {
     if (!Capacitor.isNativePlatform()) return
     // 页面返回到今天；根页面交给系统退出，不形成空白 WebView 历史页。
     const listener = NativeApp.addListener('backButton', () => {
+      if (backRegistry.handle()) return
       if (location.pathname !== '/today')
         void navigate('/today', { replace: true })
       else void NativeApp.exitApp()
@@ -45,7 +63,7 @@ export function App() {
     return () => {
       void listener.then((handle) => handle.remove())
     }
-  }, [location.pathname, navigate])
+  }, [location.pathname, navigate, backRegistry])
 
   useEffect(() => {
     const viewport = window.visualViewport
@@ -53,7 +71,9 @@ export function App() {
     // adjustResize 会同时改变 innerHeight，用无键盘时的高度判断遮挡。
     let expandedHeight = window.innerHeight
     const update = () => {
-      const editing = document.activeElement instanceof HTMLTextAreaElement
+      const editing =
+        document.activeElement instanceof HTMLTextAreaElement ||
+        document.activeElement instanceof HTMLInputElement
       if (!editing) expandedHeight = window.innerHeight
       setKeyboardOpen(editing && expandedHeight - viewport.height > 150)
     }
@@ -82,6 +102,9 @@ export function App() {
       <header className={styles.header}>
         <NavLink
           to="/today"
+          onClick={(event) => {
+            if (backRegistry.handle()) event.preventDefault()
+          }}
           className={styles.brand}
           aria-label="在途 Onway 首页"
         >
@@ -98,6 +121,9 @@ export function App() {
             <NavLink
               key={to}
               to={to}
+              onClick={(event) => {
+                if (backRegistry.handle()) event.preventDefault()
+              }}
               className={({ isActive }) =>
                 `${styles.navItem} ${isActive ? styles.active : ''}`
               }
@@ -135,7 +161,7 @@ export function App() {
           <RouteIcon size={14} /> 把计划装进口袋，把时间留给路上。
         </span>
         <span>
-          ONWAY · 0.1 <ArrowUpRight size={12} />
+          ONWAY · 0.2 <ArrowUpRight size={12} />
         </span>
       </footer>
     </div>

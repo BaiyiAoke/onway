@@ -194,3 +194,63 @@ p {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* v0.2 通用编辑操作，不覆盖各页面局部样式 */
+.secondaryButton,
+.dangerButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid #d5dccf;
+  border-radius: 12px;
+  min-height: 44px;
+  padding: 11px 16px;
+  font-size: 13px;
+  color: var(--ink);
+  background: #fffefa;
+}
+.dangerButton {
+  border-color: #a34136;
+  color: #fff;
+  background: #a34136;
+}
+.secondaryButton:hover:not(:disabled) {
+  background: #eff2e9;
+}
+.textButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  background: transparent;
+  padding: 6px 0;
+  font-size: 12px;
+  color: #526a51;
+}
+.dangerText {
+  color: #a04e44;
+}
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  background: transparent;
+  border-radius: 11px;
+}
+.formError {
+  color: #a04e44;
+  font-size: 13px;
+  margin: 12px 0;
+  line-height: 1.7;
+}
+.formError button {
+  margin-left: 12px;
+}
+select {
+  font: inherit;
+}
