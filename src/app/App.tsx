@@ -7,7 +7,7 @@ import {
   useLocation,
   useNavigate,
 } from 'react-router-dom'
-import { Compass, Map, NotebookPen, Bookmark, Sun } from 'lucide-react'
+import { Compass, Map, NotebookPen, Bookmark, Sun, Archive } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { App as NativeApp } from '@capacitor/app'
 import { TodayPage } from '../features/today/TodayPage'
@@ -18,6 +18,7 @@ import { BackHandlerProvider, useBackRegistry } from '../components/BackHandler'
 import { TravelProvider } from '../services/travel/TravelContext'
 import { RoutesProvider } from '../services/routes/RoutesContext'
 
+const BackupPage = lazy(() => import('../features/backup/BackupPage'))
 const PlacesPage = lazy(() => import('../features/places/PlacesPage'))
 const MapPage = lazy(() => import('../features/map/MapPage'))
 const links = [
@@ -28,18 +29,30 @@ const links = [
 ]
 
 export function App() {
+  const [dataVersion, setDataVersion] = useState(0)
+  const [restoredAt, setRestoredAt] = useState<string | null>(null)
+  function onRestored() {
+    setRestoredAt(new Date().toISOString())
+    setDataVersion((value) => value + 1)
+  }
   return (
     <BackHandlerProvider>
-      <TravelProvider>
+      <TravelProvider key={dataVersion}>
         <RoutesProvider>
-          <AppShell />
+          <AppShell onRestored={onRestored} restoredAt={restoredAt} />
         </RoutesProvider>
       </TravelProvider>
     </BackHandlerProvider>
   )
 }
 
-function AppShell() {
+function AppShell({
+  onRestored,
+  restoredAt,
+}: {
+  onRestored: () => void
+  restoredAt: string | null
+}) {
   const backRegistry = useBackRegistry()
   const location = useLocation()
   const navigate = useNavigate()
@@ -131,10 +144,16 @@ function AppShell() {
             </NavLink>
           ))}
         </nav>
-        <span className={styles.localBadge}>
-          <span />
-          本地优先
-        </span>
+        <NavLink
+          to="/backup"
+          className={styles.backupLink}
+          onClick={(event) => {
+            if (backRegistry.handle()) event.preventDefault()
+          }}
+        >
+          <Archive size={17} />
+          备份
+        </NavLink>
       </header>
       <main id="main-content" tabIndex={-1} className={styles.main}>
         <ErrorBoundary key={location.pathname}>
@@ -150,13 +169,19 @@ function AppShell() {
               <Route path="/map" element={<MapPage />} />
               <Route path="/plan" element={<PlanPage />} />
               <Route path="/places" element={<PlacesPage />} />
+              <Route
+                path="/backup"
+                element={
+                  <BackupPage onRestored={onRestored} restoredAt={restoredAt} />
+                }
+              />
               <Route path="*" element={<Navigate to="/today" replace />} />
             </Routes>
           </Suspense>
         </ErrorBoundary>
       </main>
       <footer className={styles.footer}>
-        <span>Onway 0.4</span>
+        <span>Onway 0.5</span>
       </footer>
     </div>
   )

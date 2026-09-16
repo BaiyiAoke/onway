@@ -144,7 +144,15 @@ export function PlaceEditor({
   }
   return (
     <EditPanel
-      title={original ? '编辑地点' : '添加地点'}
+      title={
+        trip
+          ? original
+            ? '编辑行程地点'
+            : '添加行程地点'
+          : original
+            ? '编辑收藏地点'
+            : '收藏地点'
+      }
       onClose={onClose}
       dirty={dirty}
       busy={saving}
@@ -184,6 +192,11 @@ export function PlaceEditor({
             onSubmit={(event) => void submit(event)}
             className={styles.form}
           >
+            <p className="muted">
+              {trip
+                ? '所属行程：' + trip.name
+                : '地点库 · 已有行程副本不受修改影响'}
+            </p>
             <label>
               地点名称
               <input

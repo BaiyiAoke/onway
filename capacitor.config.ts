@@ -6,7 +6,7 @@ const config: CapacitorConfig = {
   webDir: 'dist',
   // 公共算路服务要求可识别客户端；原生 WebView 保留系统 UA 并附加应用来源。
   android: {
-    appendUserAgent: ' Onway/0.4.0 (+https://github.com/BaiyiAoke/onway)',
+    appendUserAgent: ' Onway/0.5.0 (+https://github.com/BaiyiAoke/onway)',
   },
   // 页面随 APK 打包，不连接开发服务器；Android 使用本机 SQLite。
   plugins: {

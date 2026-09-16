@@ -227,3 +227,14 @@
 - README、架构、Android 指南、`verification-v0.4.md`：新功能及实际验收。
 
 忽略目录中的 QA 脚本、截图、设备快照与 APK 不进入 Git。真实搜索 Key 未写入这些源码和文档。
+
+## v0.5 新增与主要改动
+
+- src/services/backup/{model,repository,files}.ts、backup.test.ts：备份格式、校验、原子恢复、平台文件读写与回归测试。
+- src/features/backup/BackupPage.tsx、Backup.module.css：备份入口、恢复预览、覆盖确认、取消与错误重试。
+- src/services/storage/atomic.ts、android.test.ts：事务接口、冲突校验与原生事务适配测试；web.ts、android.ts 实现批量快照和原子写入。
+- android/app/src/main/java/app/onway/personal/BackupFilesPlugin.java、MainActivity.java：系统文件选择器与插件注册。
+- src/services/travel/repository.ts、src/services/routes/repository.ts、RoutesContext.tsx、NoteEditor.tsx：恢复代次和旧状态保护。
+- src/app/App.tsx、App.module.css：顶部备份入口与恢复后的 Provider 刷新；PlaceEditor.tsx 区分收藏和行程编辑。
+- package.json、锁文件、capacitor.config.ts、android/app/build.gradle：0.5.0 / code 5，无新增第三方依赖。
+- README、architecture、android、verification-v0.5.md：格式、实现与验收说明。

@@ -1,4 +1,5 @@
 import { getLocalStore } from '../storage'
+import { isAtomicStore, RESTORE_EPOCH_KEY } from '../storage/atomic'
 import type { LocalStore } from '../storage/types'
 import { isObject, isRouteResult, routeKey, type CachedRoute } from './model'
 
@@ -44,6 +45,7 @@ export function parseRouteCache(raw: string | null): RouteCacheDocument {
 
 export class RouteCacheRepository {
   private queue: Promise<unknown> = Promise.resolve()
+  private restoreEpoch: string | null | undefined
   private storePromise?: Promise<LocalStore>
   constructor(
     private readonly source:
@@ -72,9 +74,16 @@ export class RouteCacheRepository {
   }
 
   load(): Promise<RouteCacheDocument> {
-    return this.enqueue(async () =>
-      parseRouteCache(await (await this.store()).get(ROUTE_CACHE_KEY)),
-    )
+    return this.enqueue(async () => {
+      const store = await this.store()
+      const snapshot = isAtomicStore(store)
+        ? await store.readBatch([ROUTE_CACHE_KEY, RESTORE_EPOCH_KEY])
+        : null
+      this.restoreEpoch = snapshot?.[RESTORE_EPOCH_KEY] ?? null
+      return parseRouteCache(
+        snapshot ? snapshot[ROUTE_CACHE_KEY] : await store.get(ROUTE_CACHE_KEY),
+      )
+    })
   }
 
   save(
@@ -86,7 +95,18 @@ export class RouteCacheRepository {
       const persist = async () => {
         const store = await this.store()
         // 每次读取最新缓存再合并，只保留各天最近一次成功结果；不写旅行工作区。
-        const current = parseRouteCache(await store.get(ROUTE_CACHE_KEY))
+        const snapshot = isAtomicStore(store)
+          ? await store.readBatch([ROUTE_CACHE_KEY, RESTORE_EPOCH_KEY])
+          : null
+        const epoch = snapshot?.[RESTORE_EPOCH_KEY] ?? null
+        if (this.restoreEpoch === undefined) this.restoreEpoch = epoch
+        // 恢复以前发出的请求，即使途经点恰好相同，也不能写回已清空的缓存。
+        if (epoch !== this.restoreEpoch) return false
+        const current = parseRouteCache(
+          snapshot
+            ? snapshot[ROUTE_CACHE_KEY]
+            : await store.get(ROUTE_CACHE_KEY),
+        )
         if (!stillCurrent()) return false
         const key = routeKey(entry.tripId, entry.dayId)
         const entries = current.entries.filter(
@@ -97,7 +117,9 @@ export class RouteCacheRepository {
         entries.push(entry)
         const raw = JSON.stringify({ schemaVersion: 1, entries })
         parseRouteCache(raw)
-        await store.set(ROUTE_CACHE_KEY, raw)
+        if (isAtomicStore(store) && snapshot)
+          await store.writeBatch({ [ROUTE_CACHE_KEY]: raw }, snapshot)
+        else await store.set(ROUTE_CACHE_KEY, raw)
         return true
       }
       if (typeof navigator !== 'undefined' && navigator.locks)

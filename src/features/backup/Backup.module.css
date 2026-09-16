@@ -1,0 +1,78 @@
+/* 备份入口与恢复预览 */
+.page {
+  max-width: 1000px;
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.grid section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+.grid button {
+  margin-top: auto;
+}
+.hint {
+  font-size: 13px;
+  margin: 20px 0;
+}
+.success {
+  padding: 16px;
+  border-radius: 12px;
+  background: #e8efe5;
+}
+.preview {
+  display: grid;
+  gap: 14px;
+  padding: 24px;
+}
+.preview p {
+  margin: 0;
+}
+.filename {
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+.preview table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 14px;
+}
+.preview th,
+.preview td {
+  text-align: left;
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--line);
+}
+.confirm {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  line-height: 1.7;
+  font-size: 14px;
+}
+.confirm input {
+  width: 19px;
+  height: 19px;
+  flex-shrink: 0;
+  margin-top: 3px;
+  accent-color: var(--ink);
+}
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+/* 手机保持单列，不增加底部导航项 */
+@media (max-width: 700px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .preview {
+    padding: 18px;
+  }
+}

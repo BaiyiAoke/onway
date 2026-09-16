@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { Check, LoaderCircle, Save } from 'lucide-react'
 import { getLocalStore } from '../../services/storage'
+import {
+  isAtomicStore,
+  RESTORE_EPOCH_KEY,
+  type StoreSnapshot,
+} from '../../services/storage/atomic'
 import { useBackHandler } from '../../components/BackHandler'
 import { EditPanel } from '../../components/EditPanel'
 import { NOTE_KEY, type LocalStore } from '../../services/storage/types'
@@ -19,6 +24,8 @@ export function NoteEditor({
   const [retry, setRetry] = useState(0)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   const storeRef = useRef<LocalStore | null>(null)
+  const snapshotRef = useRef<StoreSnapshot | null>(null)
+  const [saveError, setSaveError] = useState('')
   const dirty = note !== savedNote
 
   // 主导航和 Android 返回共用注册表；未保存时先询问，不让 exitApp 直接丢弃草稿。
@@ -35,9 +42,14 @@ export function NoteEditor({
     loadStore()
       .then(async (store) => {
         await store.initialize()
-        const stored = (await store.get(NOTE_KEY)) ?? ''
+        const snapshot = isAtomicStore(store)
+          ? await store.readBatch([NOTE_KEY, RESTORE_EPOCH_KEY])
+          : null
+        const stored =
+          (snapshot ? snapshot[NOTE_KEY] : await store.get(NOTE_KEY)) ?? ''
         if (active) {
           storeRef.current = store
+          snapshotRef.current = snapshot
           setNote(stored)
           setSavedNote(stored)
           setStatus('ready')
@@ -55,10 +67,21 @@ export function NoteEditor({
     if (!storeRef.current) return
     setStatus('saving')
     try {
-      await storeRef.current.set(NOTE_KEY, note)
+      if (isAtomicStore(storeRef.current) && snapshotRef.current) {
+        await storeRef.current.writeBatch(
+          { [NOTE_KEY]: note },
+          snapshotRef.current,
+        )
+        snapshotRef.current = { ...snapshotRef.current, [NOTE_KEY]: note }
+      } else await storeRef.current.set(NOTE_KEY, note)
       setSavedNote(note)
       setStatus('saved')
-    } catch {
+    } catch (error) {
+      setSaveError(
+        error instanceof Error && error.message.includes('已更新')
+          ? '保存失败，输入已保留。' + error.message
+          : '',
+      )
       setStatus('saveError')
     }
   }
@@ -106,7 +129,7 @@ export function NoteEditor({
             : status === 'loadError'
               ? '本地数据读取失败，请重试。'
               : status === 'saveError'
-                ? '保存失败，输入已保留，请重试。'
+                ? saveError || '保存失败，输入已保留，请重试。'
                 : status === 'saved'
                   ? '已保存到当前设备'
                   : note !== savedNote

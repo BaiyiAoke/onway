@@ -1,6 +1,6 @@
 # 在途 Onway
 
-v0.4 个人旅行工具：独立收藏地点、按天安排多个行程、估算自驾路线，并在 Android 上打开高德导航。Web 与 Android 共用 React 界面，各自保存本地数据，不连接 TREK 或业务后端。
+v0.5 个人旅行工具：独立收藏地点、按天安排多个行程、估算自驾路线，并在 Android 上打开高德导航。Web 与 Android 共用 React 界面，各自保存本地数据，不连接 TREK 或业务后端。
 
 ## 开发与构建
 
@@ -16,7 +16,7 @@ npm run android:debug
 
 开发页面为 [http://127.0.0.1:5175/#/today](http://127.0.0.1:5175/#/today)。localhost 与 127.0.0.1 是不同的 IndexedDB 存储来源。
 
-Android 最低 **Android 12 / API 31**。版本 **0.4.0 / versionCode 4**，包名 `app.onway.personal`，Debug APK 位于 `artifacts/onway-debug.apk`。
+Android 最低 **Android 12 / API 31**。版本 **0.5.0 / versionCode 5**，包名 `app.onway.personal`，Debug APK 位于 `artifacts/onway-debug.apk`。
 
 ## 使用
 
@@ -50,9 +50,21 @@ Android 最低 **Android 12 / API 31**。版本 **0.4.0 / versionCode 4**，包�
 
 驾驶估算不含停留时间和实时路况。Android 的“高德导航”打开手机高德并传递已保存目的地，Onway 不读取设备定位；此导航 URI 不需要搜索 Key。高德实际导航可能与 OSRM 估算不同。
 
+## 文件备份与恢复
+
+顶部“备份”入口提供导出和恢复，四个主导航不变。
+
+- JSON 备份包含全部行程、每天地点的顺序、地点库、自定义分类及个人备注，保留 ID 和独立副本关系。文件格式版本为 1，记录导出时间及应用版本，最大 20 MB。
+- Web 发起文件下载；Android 使用系统文件选择器保存到用户选择的位置，也可从该选择器读取文件。两端格式相同，支持手动传输后互相恢复。
+- 导入先校验版本、数据结构、坐标、分类引用和重复 ID，再展示当前与备份的数据量。勾选并确认后整体替换，不执行合并。取消、无效文件或保存失败不会改变原数据。
+- 可在确认页面先导出当前数据。恢复期间发现本地内容已更新时，必须重新读取预览，避免覆盖新修改。
+- 搜索配置与 Key 留在当前设备，不进入文件；搜索缓存不备份，恢复保留当前搜索缓存。路线缓存不迁移，恢复时清空，之后可按天重新计算。
+- 文件是可读 JSON。恢复成功后刷新应用内数据，不要求重新加载网页资源；Web 离线冷启动限制保持不变。
+- “编辑收藏地点”和“编辑行程地点”现在使用不同标题，后者同时显示所属行程。
+
 ## 本地数据与离线
 
-- Web：当前浏览器来源的 `onway-local` IndexedDB；Android：应用私有目录 `onwaySQLite.db`。两端数据独立，无账号、云同步或文件备份。
+- Web：当前浏览器来源的 `onway-local` IndexedDB；Android：应用私有目录 `onwaySQLite.db`。两端数据独立，可通过备份文件互相转移，无账号或云同步。
 - 数据库表结构仍为 v1，旧个人备注键 `demo.travel-note` 不变。旅行文档 `travel.workspace` 升级为 **schemaVersion 2**，增加地点库和分类；读取 v1 时只在内存迁移，下一次成功保存才写入 v2。旧行程、ID、顺序和备注保留，不自动收藏或创建示例。
 - `routes.cache` 仍为文档 v1。搜索配置和缓存是独立键，不混入行程或路线缓存。
 - 保存成功后才更新共享页面；失败保留输入，读取损坏文档不清空数据。Web 写入继续使用过期快照检查与可用时的 Web Locks。
@@ -67,7 +79,8 @@ Android 最低 **Android 12 / API 31**。版本 **0.4.0 / versionCode 4**，包�
 
 - [架构说明](docs/architecture.md)
 - [Android 开发](docs/android.md)
-- [v0.4 验证记录](docs/verification-v0.4.md)
+- [v0.5 验证记录](docs/verification-v0.5.md)
+- [v0.4 历史验证](docs/verification-v0.4.md)
 - [v0.3 历史验证](docs/verification-v0.3.md)
 - [v0.2 历史验证](docs/verification-v0.2.md)
 - [工程文件清单](docs/file-inventory.md)

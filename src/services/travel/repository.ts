@@ -1,4 +1,5 @@
 import { getLocalStore } from '../storage'
+import { isAtomicStore, RESTORE_EPOCH_KEY } from '../storage/atomic'
 import type { LocalStore } from '../storage/types'
 import {
   applyTravelAction,
@@ -188,6 +189,7 @@ export class TravelRepository {
   private storePromise?: Promise<LocalStore>
   private snapshot: TravelWorkspace | null = null
   private rawSnapshot: string | null = null
+  private restoreEpoch: string | null = null
 
   constructor(
     private readonly source:
@@ -218,7 +220,13 @@ export class TravelRepository {
 
   private async read(): Promise<TravelWorkspace> {
     const store = await this.store()
-    const raw = await store.get(TRAVEL_WORKSPACE_KEY)
+    const snapshot = isAtomicStore(store)
+      ? await store.readBatch([TRAVEL_WORKSPACE_KEY, RESTORE_EPOCH_KEY])
+      : null
+    const raw = snapshot
+      ? snapshot[TRAVEL_WORKSPACE_KEY]
+      : await store.get(TRAVEL_WORKSPACE_KEY)
+    this.restoreEpoch = snapshot?.[RESTORE_EPOCH_KEY] ?? null
     const workspace = parseWorkspace(raw)
     this.rawSnapshot = raw
     this.snapshot = workspace
@@ -243,7 +251,15 @@ export class TravelRepository {
         const next = applyTravelAction(this.snapshot!, action)
         const raw = JSON.stringify(next)
         parseWorkspace(raw)
-        await store.set(TRAVEL_WORKSPACE_KEY, raw)
+        if (isAtomicStore(store)) {
+          await store.writeBatch(
+            { [TRAVEL_WORKSPACE_KEY]: raw },
+            {
+              [TRAVEL_WORKSPACE_KEY]: this.rawSnapshot,
+              [RESTORE_EPOCH_KEY]: this.restoreEpoch,
+            },
+          )
+        } else await store.set(TRAVEL_WORKSPACE_KEY, raw)
         this.rawSnapshot = raw
         this.snapshot = next
         return structuredClone(next)

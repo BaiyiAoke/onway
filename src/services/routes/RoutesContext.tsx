@@ -15,6 +15,7 @@ interface RoutesContextValue {
   calculate: RouteController['calculate']
   retrySave: RouteController['retrySave']
   reload: RouteController['load']
+  cancelPending: RouteController['dispose']
 }
 const RoutesContext = createContext<RoutesContextValue | null>(null)
 
@@ -48,6 +49,7 @@ export function RoutesProvider({
         calculate: controller.calculate,
         retrySave: controller.retrySave,
         reload: controller.load,
+        cancelPending: controller.dispose,
       }}
     >
       {children}

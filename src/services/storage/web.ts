@@ -1,4 +1,5 @@
 import Dexie, { type Table } from 'dexie'
+import { assertSnapshot, type StoreSnapshot } from './atomic'
 import { initialNote } from '../../data/demo'
 import { NOTE_KEY, type LocalStore } from './types'
 
@@ -40,6 +41,36 @@ export class WebLocalStore implements LocalStore {
   async set(key: string, value: string) {
     await this.initialize()
     await this.entries.put({ key, value })
+  }
+  async readBatch(keys: readonly string[]): Promise<StoreSnapshot> {
+    await this.initialize()
+    return this.db.transaction('r', this.entries, async () => {
+      const rows = await this.entries.bulkGet([...keys])
+      return Object.fromEntries(
+        keys.map((key, index) => [key, rows[index]?.value ?? null]),
+      )
+    })
+  }
+  async writeBatch(
+    values: Record<string, string>,
+    expected?: StoreSnapshot,
+  ): Promise<void> {
+    await this.initialize()
+    await this.db.transaction('rw', this.entries, async () => {
+      if (expected) {
+        const keys = Object.keys(expected)
+        const rows = await this.entries.bulkGet(keys)
+        assertSnapshot(
+          Object.fromEntries(
+            keys.map((key, i) => [key, rows[i]?.value ?? null]),
+          ),
+          expected,
+        )
+      }
+      await this.entries.bulkPut(
+        Object.entries(values).map(([key, value]) => ({ key, value })),
+      )
+    })
   }
   close() {
     this.db.close()

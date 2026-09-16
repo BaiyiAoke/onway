@@ -4,6 +4,7 @@ import {
   type SQLiteDBConnection,
 } from '@capacitor-community/sqlite'
 import { initialNote } from '../../data/demo'
+import { assertSnapshot, type StoreSnapshot } from './atomic'
 import { NOTE_KEY, type LocalStore } from './types'
 
 const CREATE_ENTRIES_SQL =
@@ -53,20 +54,61 @@ export class AndroidLocalStore implements LocalStore {
     )
   }
 
-  async get(key: string): Promise<string | null> {
-    await this.initialize()
-    const result = await this.db!.query(
-      'SELECT value FROM entries WHERE key = ?',
-      [key],
-    )
-    return (result.values?.[0] as { value: string } | undefined)?.value ?? null
+  // 同一个 SQLite 连接上的读取、普通保存与恢复共用队列，事务中途不插入其他操作。
+  private queue: Promise<unknown> = Promise.resolve()
+  private enqueue<T>(operation: () => Promise<T>): Promise<T> {
+    const result = this.queue.then(operation)
+    this.queue = result.catch(() => undefined)
+    return result
   }
-
-  async set(key: string, value: string): Promise<void> {
-    await this.initialize()
-    await this.db!.run(
-      'INSERT INTO entries (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
-      [key, value],
+  private async readValues(keys: readonly string[]): Promise<StoreSnapshot> {
+    if (!keys.length) return {}
+    const result = await this.db!.query(
+      'SELECT key, value FROM entries WHERE key IN (' +
+        keys.map(() => '?').join(',') +
+        ')',
+      [...keys],
     )
+    const rows = new Map(
+      (result.values as { key: string; value: string }[] | undefined)?.map(
+        (row) => [row.key, row.value],
+      ),
+    )
+    return Object.fromEntries(keys.map((key) => [key, rows.get(key) ?? null]))
+  }
+  async readBatch(keys: readonly string[]): Promise<StoreSnapshot> {
+    await this.initialize()
+    return this.enqueue(() => this.readValues(keys))
+  }
+  async writeBatch(
+    values: Record<string, string>,
+    expected?: StoreSnapshot,
+  ): Promise<void> {
+    await this.initialize()
+    return this.enqueue(async () => {
+      await this.db!.beginTransaction()
+      try {
+        if (expected)
+          assertSnapshot(await this.readValues(Object.keys(expected)), expected)
+        await this.db!.executeSet(
+          Object.entries(values).map(([key, value]) => ({
+            statement:
+              'INSERT INTO entries (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+            values: [key, value],
+          })),
+          false,
+        )
+        await this.db!.commitTransaction()
+      } catch (error) {
+        await this.db!.rollbackTransaction()
+        throw error
+      }
+    })
+  }
+  async get(key: string): Promise<string | null> {
+    return (await this.readBatch([key]))[key]
+  }
+  async set(key: string, value: string): Promise<void> {
+    await this.writeBatch({ [key]: value })
   }
 }

@@ -70,9 +70,9 @@ Android 导航封装在 `src/services/navigation/amap.ts`：仅使用已保存�
 
 ## 平台与构建
 
-Capacitor `webDir` 指向 `dist`，不配置 `server.url`；Hash 路由适用于浏览器和 APK 本地资源。Android 最低 API 31、编译／目标 API 36，v0.4 `versionCode` 为 4，包名仍为 `app.onway.personal`。
+Capacitor `webDir` 指向 `dist`，不配置 `server.url`；Hash 路由适用于浏览器和 APK 本地资源。Android 最低 API 31、编译／目标 API 36，v0.5 `versionCode` 为 5，包名仍为 `app.onway.personal`。
 
-APK 内置页面和本地存储能力，断网可管理已有数据；底图、瓦片与字体在线加载。Web 没有 Service Worker，不承诺离线冷启动。当前不引入后端、账号、云同步、文件互导、定位或离线地图下载。
+APK 内置页面和本地存储能力，断网可管理已有数据；底图、瓦片与字体在线加载。Web 没有 Service Worker，不承诺离线冷启动。当前支持本地文件互导，不引入后端、账号、云同步、定位或离线地图下载。
 
 MapLibre 6 Worker 通过 Vite 的 `?worker&url` 显式打包并使用 ES 模块格式，缺少此配置可能导致生产页面只有标记而没有底图。地图引擎分块约 1 MB，会产生超过 500 kB 的构建提示；该分块按地图路由延迟加载，不为了消除提示拆散引擎内部模块。
 
@@ -98,3 +98,14 @@ PlacesPage 不依赖 activeTrip。库中地点列表支持名称／地址和分�
 - SearchPanel 显式提交，不做自动补全；搜索串行，草稿编辑取消后保留原结果；配置写入失败保留输入。默认 Key 通过被 Git 忽略的 .env.local 私有构建变量预置，按用户要求进入构建资源；设备设置优先，可修改、切换服务和恢复默认。真实 Key 不提交仓库。SearchPanel 支持页面内搜索框，PlacesPage 直接展示地图及次要坐标按钮。公共 Nominatim 的总应用流量限制仍需在未来分发前评估。
 
 路线的指纹、数据格式和计算行为未改；名称、分类、备注、地址不会使路线失效。DayRouteSummary 只收起说明性文案，保存失败、过期与计算失败仍明显显示。RouteAttribution 在今天／计划／地图各显示一次，底图署名保留。
+
+## v0.5 备份与原子恢复
+
+- services/backup/model.ts：格式版本 1、20 MB 上限、业务字段白名单、现有工作区校验与迁移。只导出已保存数据，不包含 Key、设备设置或缓存。
+- BackupRepository：单次 readBatch 获取一致快照；预览不写入。确认时重新校验并以预览原始值作条件，writeBatch 同一事务写入 travel.workspace、demo.travel-note、空 routes.cache 和 backup.restore-epoch。
+- AtomicLocalStore 扩展原 LocalStore，不改变 v1 数据库结构。Web 用 Dexie 事务；Android 用 SQLite 显式事务，所有读写共用同一连接队列。失败回滚，未回退逐键写入。
+- travel、routes 和个人备注保存使用事务内条件比较及恢复代次，旧页面或旧路线响应不能覆盖恢复结果。恢复前取消当前路线请求，成功后重建 TravelProvider / RoutesProvider，不进行网页冷刷新。
+- BackupPage：顶部入口、文件校验错误、数量预览、导出现有数据、覆盖确认与取消。进行文件操作或恢复时阻止导航与系统返回；恢复失败保留选中的文件并允许重新读取预览。
+- Web 用 File 与 Blob 下载，不把“发起下载”误报为实际保存成功。Android 的 BackupFilesPlugin 使用 ACTION_CREATE_DOCUMENT / ACTION_OPEN_DOCUMENT 和 UTF-8 流读写，不申请外部存储权限。读取超过 20 MB 时停止，文件 I/O 在独立线程执行。
+
+参考：[Android 文件访问](https://developer.android.com/training/data-storage/shared/documents-files)、[Capacitor Android 插件](https://capacitorjs.com/docs/plugins/android)、[Dexie 事务](<https://dexie.org/docs/Dexie/Dexie.transaction()>)。
