@@ -18,6 +18,8 @@ import { TravelToolbar } from '../travel/TravelToolbar'
 import { PlaceEditor, type PlaceDraft } from '../travel/PlaceEditor'
 import forms from '../travel/Travel.module.css'
 import styles from './Plan.module.css'
+import { DayRouteSummary, RouteLeg } from '../routes/DayRouteSummary'
+import { AmapButton } from '../routes/AmapButton'
 import { TravelSaveFeedback } from '../travel/TravelSaveFeedback'
 
 function TripEditor({ trip, onClose }: { trip?: Trip; onClose: () => void }) {
@@ -177,6 +179,13 @@ export function PlanPage() {
               {String(index + 1).padStart(2, '0')}
             </span>
             <div className={styles.placeMain}>
+              {dayId && (
+                <RouteLeg
+                  tripId={trip.id}
+                  day={trip.days.find((day) => day.id === dayId)!}
+                  toIndex={index}
+                />
+              )}
               <h3>{place.name}</h3>
               {place.note && <p>{place.note}</p>}
               <div className={styles.placeLinks}>
@@ -196,6 +205,7 @@ export function PlanPage() {
                   <MapPin size={14} />
                   在地图查看
                 </Link>
+                <AmapButton place={place} />
                 {place.sourceUrl && (
                   <a
                     className="textButton"
@@ -432,6 +442,7 @@ export function PlanPage() {
                     删除这一天
                   </button>
                 </div>
+                <DayRouteSummary trip={trip} day={day} editable />
                 {renderPlaces(day.places, day.id)}
               </section>
             ),
@@ -439,7 +450,7 @@ export function PlanPage() {
           <aside className={styles.notice}>
             <Route size={21} />
             <p>
-              地点顺序已保存。自驾路线、分段距离与预计时间将在下一阶段加入。
+              每天按已保存的地点顺序独立估算，不连接前一天终点。调整地点后，请手动重新计算。
             </p>
           </aside>
           <button

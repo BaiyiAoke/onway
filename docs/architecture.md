@@ -7,7 +7,9 @@
 - `src/components`：编辑面板、删除确认、Android 返回处理注册表与错误边界。
 - `src/services/travel`：旅行类型、纯数据操作、日期辅助方法、TravelRepository 和 React Context。
 - `src/services/storage`：异步 LocalStore 契约及 Web／Android 适配器。
-- `src/services/routes`：未来驾车路线服务的类型契约；当前没有实现。
+- `src/services/routes`：OSRM 服务、路线缓存、有效性匹配与共享状态。
+- `src/features/routes`：每日摘要、分段结果、地图图例和高德按钮。
+- `src/services/navigation`：Android 高德导航 URI 与原生启动器。
 - `src/data`：带公开资料来源链接的示例地点，不读取 TREK 用户数据。
 - `src/styles`：共享 CSS 变量与基础样式；功能样式由 CSS Modules 管理。
 - `android`：Capacitor 原生工程；构建输出、机器路径和同步后的 Web 资源不入库。
@@ -20,6 +22,7 @@
 | ------------------ | -------------------------------------------- |
 | `demo.travel-note` | v0.1 延续的独立个人备注，UI 改名但存储键不变 |
 | `travel.workspace` | v0.2 全部行程与当前行程 ID 的单个 JSON 文档  |
+| `routes.cache`     | v0.3 各行程每天最近一次成功路线，独立文档 v1 |
 
 个人备注初始化只在键不存在时插入默认内容，已有备注（包括空字符串）不会被覆盖。首次读不到旅行文档时返回空工作区，不自动写入示例；用户在计划页点击示例按钮后，才创建包含新 ID 的可编辑副本。
 
@@ -47,11 +50,27 @@ MapLibre GL JS 在地图路由中按需加载，使用 OpenFreeMap Positron 并�
 
 编辑面板在手机底部显示、桌面以弹窗显示。Android 返回由注册表按最上层优先处理，编辑面板遇到未保存修改先确认是否放弃，地图重新选点也可取消；无上层交互时再执行页面返回或退出。个人备注保留独立手动保存及浏览器离开提醒；主导航和 Android 返回会先确认未保存修改，保存进行中会拦截离开。页面内部快捷链接切换前仍应主动保存，系统强制结束进程无法拦截。
 
-`RouteService.calculateDrivingRoute` 接收按顺序排列的 WGS84 地点与可选 AbortSignal。后续实现返回 GeoJSON LineString（经度在前）、总距离米数、总时长秒数、分段结果、来源与计算时间。当前只保存每天地点顺序，没有接入 OSRM 或其他算路服务，不生成虚构距离或耗时。
+## 路线计算、缓存与外部导航
+
+`RouteService.calculateDrivingRoute` 接收有序 WGS84 地点和可选 AbortSignal，返回 GeoJSON LineString（经度在前）、距离米数、时长秒数、逐段结果、来源和计算时间。`OsrmRouteService` 使用 FOSSGIS HTTPS 驾车端点，关闭备选与优化，`radiuses` 为每点 1000 米。校验返回几何、指标、吸附距离、途经点数量和分段完整性，不以直线或虚构时间兜底。
+
+全应用共用一个请求队列：请求串行、开始间隔至少 1 秒、单次 20 秒超时；不自动重试。仅手动点击发起网络请求。Android WebView 的 User-Agent 附加 Onway 版本和项目地址；Web 保留浏览器 UA。规则依据：[FOSSGIS 使用要求](https://routing.openstreetmap.de/about.html)、[OSRM Route API](https://project-osrm.org/docs/v5.24.0/api/#route-service)。限速针对当前应用实例，多标签不共享请求队列。
+
+`RouteCacheRepository` 通过同一个 LocalStore 写入独立 `routes.cache`，采用 `schemaVersion: 1` 和条目数组。每个条目含行程 ID、天 ID、输入指纹和 RouteResult。只保留该天最近一次成功结果；保存时读取最新缓存并合并，串行写入，有 Web Locks 时加跨标签锁；下一次成功保存时清理已删除行程／天的条目。不更改旅行工作区、数据库表版本或旧备注。解析失败及未知版本不自动覆盖，保留显式版本校验入口。
+
+输入指纹包含服务标识、道路吸附策略版本、有序地点 ID 与 WGS84 坐标。日期、名称和备注不参与匹配。页面始终按当前天的输入重新匹配，因此增删、移动、排序、重新选点后不能把旧缓存当有效路线；未安排不计算，少于两点不显示旧指标。调整回完全相同的输入时，可重新匹配原缓存。
+
+`RouteController` 通过 React Context + useSyncExternalStore 共享状态，TravelProvider 继续管理旅行数据。它在工作区更新时取消过期任务，接收响应和保存前再次核对输入；即使底层响应晚到也不会展示为当前路线。写入期间输入改变时，已写入的旧指纹也不会匹配新地点。缓存写入失败保留带“未保存”标记的新结果，用户可以只重试保存。重新算路失败时保留并明确标注上次仍匹配的估算。读取失败独立提示，旅行编辑仍可继续。
+
+地图用独立 GeoJSON source 和线图层更新路线，颜色按天区分；“全部”只合并各天的独立 feature，不拼接跨天几何。“未安排”清空线路。地点或缓存更新不重建地图；加载失败但 source 已存在时仍清除失效线路。范围适配按钮同时包含地点与路线几何，避免道路绕行被裁切。
+
+Android 导航封装在 `src/services/navigation/amap.ts`：仅使用已保存地点，通过稳定版 `@capacitor/app-launcher` 8.0.1 查询 `com.autonavi.minimap` 并打开官方 `androidamap://navi`。Manifest 声明包名和 scheme 的 queries；不申请定位权限，不嵌入高德 SDK。WGS84 传 `dev=1` 由高德转换，名称 URL 编码，来源为 Onway；`style=2` 保留 URI 必填项，实际偏好以当前高德设置为准。依据：[高德参数](https://lbs.amap.com/api/amap-mobile/guide/android/navigation)、[App Launcher v8](https://capacitorjs.com/docs/apis/app-launcher)。
+
+高德从当前位置导航到单个目的地，路线可与 OSRM 估算不同。未安装／启动失败时留在 Onway 提示，Web 不显示客户端导航入口。
 
 ## 平台与构建
 
-Capacitor `webDir` 指向 `dist`，不配置 `server.url`；Hash 路由适用于浏览器和 APK 本地资源。Android 最低 API 31、编译／目标 API 36，v0.2 `versionCode` 为 2，包名仍为 `app.onway.personal`。
+Capacitor `webDir` 指向 `dist`，不配置 `server.url`；Hash 路由适用于浏览器和 APK 本地资源。Android 最低 API 31、编译／目标 API 36，v0.3 `versionCode` 为 3，包名仍为 `app.onway.personal`。
 
 APK 内置页面和本地存储能力，断网可管理已有数据；底图、瓦片与字体在线加载。Web 没有 Service Worker，不承诺离线冷启动。当前不引入后端、账号、云同步、文件互导、定位、地点搜索或离线地图下载。
 

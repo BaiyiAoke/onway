@@ -1,6 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Android 11+ 查询与打开已安装的高德地图，不申请设备定位权限。 -->
+    <queries>
+        <package android:name="com.autonavi.minimap" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="androidamap" />
+        </intent>
+    </queries>
+
     <application
         android:allowBackup="false"
         android:icon="@drawable/onway_icon"
@@ -39,7 +48,7 @@
     <uses-permission android:name="android.permission.USE_BIOMETRIC" tools:node="remove" />
     <uses-permission android:name="android.permission.USE_FINGERPRINT" tools:node="remove" />
 
-    <!-- 在线地图所需权限 -->
+    <!-- 在线底图与路线计算所需权限 -->
 
     <uses-permission android:name="android.permission.INTERNET" />
 </manifest>

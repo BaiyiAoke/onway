@@ -11,6 +11,8 @@ import { formatDayLabel, getTodayDayIndex } from '../../services/travel/model'
 import { TravelToolbar } from '../travel/TravelToolbar'
 import { NoteEditor } from './NoteEditor'
 import styles from './Today.module.css'
+import { DayRouteSummary } from '../routes/DayRouteSummary'
+import { AmapButton } from '../routes/AmapButton'
 
 export function TodayPage() {
   const { activeTrip, status, setGroup } = useTravel()
@@ -121,6 +123,9 @@ export function TodayPage() {
                 : '出发日期还未确定，以下是首日安排。'}
             </p>
           )}
+          {activeTrip && displayedDay && (
+            <DayRouteSummary trip={activeTrip} day={displayedDay} />
+          )}
           {displayedDay && displayedDay.places.length > 0 ? (
             <ol className={styles.placeList}>
               {displayedDay.places.map((place, index) => (
@@ -140,6 +145,7 @@ export function TodayPage() {
                     </div>
                     <ArrowUpRight size={17} className="muted" />
                   </Link>
+                  <AmapButton place={place} />
                 </li>
               ))}
             </ol>

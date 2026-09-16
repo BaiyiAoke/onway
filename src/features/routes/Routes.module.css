@@ -1,0 +1,128 @@
+/* 每日路线摘要与请求反馈 */
+.summary {
+  background: #f0f3eb;
+  border: 1px solid #dfe6d7;
+  border-radius: 16px;
+  padding: 17px 18px;
+  margin: 15px 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.summaryTop {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.caption {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #526a51;
+  margin: 0 0 7px;
+}
+.metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  align-items: baseline;
+  margin: 0;
+}
+.metrics strong {
+  font-size: 20px;
+  font-weight: 600;
+}
+.metrics span {
+  font-size: 13px;
+  color: #53634f;
+}
+.summary .hint {
+  color: #636e60;
+  font-size: 11px;
+  margin: 6px 0 0;
+}
+.summary .error {
+  color: #a04e44;
+  font-size: 12px;
+  margin-top: 9px;
+}
+.error p {
+  margin: 0;
+}
+.disclosure {
+  color: #747970;
+  font-size: 10px;
+  margin: 12px 0 0;
+}
+.attribution {
+  font-size: 10px;
+  color: #636e60;
+  margin: 6px 0 0;
+}
+.attribution a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+/* 相邻地点的驾驶分段与地图图例 */
+.leg {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  color: #64775e;
+  font-size: 11px;
+  line-height: 1.7;
+  margin: 0 0 9px;
+  overflow-wrap: anywhere;
+}
+.leg svg {
+  flex-shrink: 0;
+}
+.overview {
+  margin: 0 0 17px;
+}
+.overview p {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0 0 6px;
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 18px;
+}
+.swatch {
+  display: inline-block;
+  width: 17px;
+  height: 4px;
+  border-radius: 4px;
+}
+/* 外部导航与窄屏排布 */
+.navigation {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 100%;
+}
+.navigation button {
+  min-height: 40px;
+}
+.navigation .failure {
+  color: #a04e44;
+  font-size: 11px;
+  margin: 0;
+  max-width: 260px;
+}
+@media (max-width: 700px) {
+  .summary {
+    padding: 15px;
+  }
+  .metrics strong {
+    font-size: 19px;
+  }
+  .summaryTop > button {
+    min-height: 42px;
+  }
+}

@@ -207,3 +207,12 @@ describe('计划页的行程操作', () => {
     expect(read().trips[0].days[0].places[0].id).toBe('place-first')
   })
 })
+
+vi.mock('../../services/routes/RoutesContext', () => ({
+  useRoutes: () => ({
+    state: { status: 'ready', entries: {}, operations: {}, error: null },
+    calculate: vi.fn(),
+    retrySave: vi.fn(),
+    reload: vi.fn(),
+  }),
+}))

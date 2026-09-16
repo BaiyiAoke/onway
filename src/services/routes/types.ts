@@ -18,7 +18,7 @@ export interface RouteResult {
   calculatedAt: string
 }
 
-// 只定义契约；道路路线必须来自后续接入的服务，不以直线或虚构估时替代。
+// 道路路线来自实际算路服务；保留 WGS84、米与秒，不以直线或虚构估时替代。
 export interface RouteService {
   calculateDrivingRoute(
     waypoints: readonly Wgs84Point[],

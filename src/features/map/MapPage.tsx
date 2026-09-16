@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
@@ -11,6 +18,12 @@ import type { Trip, TripPlace } from '../../services/travel/types'
 import { PlaceEditor, type PlaceDraft } from '../travel/PlaceEditor'
 import { TravelToolbar } from '../travel/TravelToolbar'
 import styles from './Map.module.css'
+import { useRoutes } from '../../services/routes/RoutesContext'
+import { visibleDayRoutes } from '../../services/routes/view'
+import { ROUTE_COLORS } from '../../services/routes/model'
+import { MapRouteOverview } from '../routes/MapRouteOverview'
+import { RouteAttribution } from '../routes/DayRouteSummary'
+import { canUseAmap, navigateWithAmap } from '../../services/navigation/amap'
 
 // 显式打包 Worker，避免生产资源改名后默认相对路径失效。
 maplibregl.setWorkerUrl(mapWorkerUrl)
@@ -41,6 +54,11 @@ function groupLabel(trip: Trip, place: TripPlace) {
 
 export default function MapPage() {
   const { activeTrip, status, group, setGroup } = useTravel()
+  const { state: routesState } = useRoutes()
+  const visibleRoutes = useMemo(
+    () => visibleDayRoutes(routesState, activeTrip, group),
+    [routesState, activeTrip, group],
+  )
   const [searchParams] = useSearchParams()
   const requestedPlaceId = searchParams.get('place')
   const container = useRef<HTMLDivElement>(null)
@@ -94,6 +112,33 @@ export default function MapPage() {
       setInteraction({ mode: 'editing', draft: placeDraft(trip, place) })
     })
     content.append(title, category, note, edit)
+    if (canUseAmap()) {
+      const navigate = document.createElement('button')
+      navigate.type = 'button'
+      navigate.textContent = '高德导航'
+      navigate.className = styles.popupNavigate
+      navigate.setAttribute('aria-label', '高德导航到' + place.name)
+      const message = document.createElement('p')
+      message.className = styles.navigationMessage
+      message.textContent = '从当前位置导航，路线以高德为准。'
+      navigate.addEventListener('click', (event) => {
+        event.stopPropagation()
+        navigate.disabled = true
+        void navigateWithAmap(place)
+          .catch((reason: unknown) => {
+            if (!content.isConnected) return
+            message.setAttribute('role', 'alert')
+            message.textContent =
+              reason instanceof Error
+                ? reason.message
+                : '打开高德失败，请重试。'
+          })
+          .finally(() => {
+            navigate.disabled = false
+          })
+      })
+      content.append(navigate, message)
+    }
     // 弹窗和地点标记的点击不能继续冒泡为地图新增地点。
     content.addEventListener('click', (event) => event.stopPropagation())
     const popup = new maplibregl.Popup({ offset: 24, maxWidth: '280px' })
@@ -117,6 +162,11 @@ export default function MapPage() {
     const bounds = new maplibregl.LngLatBounds()
     places.forEach(({ coordinates }) =>
       bounds.extend([coordinates.longitude, coordinates.latitude]),
+    )
+    visibleRoutes.forEach(({ entry }) =>
+      entry.result.geometry.coordinates.forEach((point) =>
+        bounds.extend(point),
+      ),
     )
     map.fitBounds(bounds, { padding: 65, maxZoom: 12, duration })
   })
@@ -274,6 +324,53 @@ export default function MapPage() {
     return () => markers.forEach((marker) => marker.remove())
   }, [activeTrip, group, attempt, showDetails])
 
+  // 只更新 GeoJSON 数据，不因路线重算或筛选而重建底图。
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    const source = map.getSource<maplibregl.GeoJSONSource>(
+      'onway-driving-routes',
+    )
+    if (!source && state !== 'ready') return
+    let active = true
+    const data = {
+      type: 'FeatureCollection' as const,
+      features: visibleRoutes.map(({ entry, index }) => ({
+        type: 'Feature' as const,
+        properties: { color: ROUTE_COLORS[index % ROUTE_COLORS.length] },
+        geometry: entry.result.geometry,
+      })),
+    }
+    if (source)
+      void source.setData(data).catch(() => {
+        if (active) setState('error')
+      })
+    else {
+      map.addSource('onway-driving-routes', { type: 'geojson', data })
+      map.addLayer({
+        id: 'onway-route-outline',
+        type: 'line',
+        source: 'onway-driving-routes',
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': '#fffefa',
+          'line-width': 8,
+          'line-opacity': 0.8,
+        },
+      })
+      map.addLayer({
+        id: 'onway-route-line',
+        type: 'line',
+        source: 'onway-driving-routes',
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': ['get', 'color'], 'line-width': 4 },
+      })
+    }
+    return () => {
+      active = false
+    }
+  }, [visibleRoutes, state, attempt])
+
   useEffect(() => {
     if (state !== 'ready') return
     const tripId = `${activeTrip?.id ?? ''}:${group}`
@@ -344,6 +441,11 @@ export default function MapPage() {
     visiblePlaces.forEach(({ coordinates }) =>
       bounds.extend([coordinates.longitude, coordinates.latitude]),
     )
+    visibleRoutes.forEach(({ entry }) =>
+      entry.result.geometry.coordinates.forEach((point) =>
+        bounds.extend(point),
+      ),
+    )
     map.fitBounds(bounds, { padding: 65, maxZoom: 12, duration: 400 })
   }
 
@@ -397,6 +499,7 @@ export default function MapPage() {
           </button>
         </div>
       )}
+      {!picking && group === 'all' && <MapRouteOverview />}
       <div className={styles.layout}>
         <section
           className={`${styles.mapCard} ${picking ? styles.picking : ''}`}
@@ -437,6 +540,7 @@ export default function MapPage() {
           </button>
         </section>
         <aside className={`card ${styles.places}`}>
+          {!picking && group !== 'all' && <MapRouteOverview />}
           <p className="eyebrow">地图上的小小路标</p>
           <h2>
             沿途地点 <span>{visiblePlaces.length}</span>
@@ -483,8 +587,9 @@ export default function MapPage() {
             </ol>
           )}
           <p className={styles.note}>
-            地点可离线编辑。选点需要看得清底图；当前不提供导航、距离或驾驶时间。
+            地点和已保存的路线估算可离线查看；底图与重新计算需要联网。路线变化后请重新计算。
           </p>
+          {visibleRoutes.length > 0 && group === 'all' && <RouteAttribution />}
         </aside>
       </div>
       {activeTrip && interaction?.mode === 'editing' && (

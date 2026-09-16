@@ -1,6 +1,47 @@
 # 工程文件清单
 
-以下清单对应 v0.2 相对初始化版本的新增与修改，主分支为 main。构建产物、测试截图、node_modules 和机器路径均被忽略。
+以下清单包含当前 v0.3 相对 v0.2 的改动，并保留 v0.2 历史清单，主分支为 main。构建产物、测试截图、node_modules 和机器路径均被忽略。
+
+## v0.3 新增文件
+
+- `docs/verification-v0.3.md`
+- `src/features/routes/AmapButton.tsx`
+- `src/features/routes/DayRouteSummary.test.tsx`
+- `src/features/routes/DayRouteSummary.tsx`
+- `src/features/routes/MapRouteOverview.tsx`
+- `src/features/routes/Routes.module.css`
+- `src/services/navigation/amap.test.tsx`
+- `src/services/navigation/amap.ts`
+- `src/services/routes/RoutesContext.tsx`
+- `src/services/routes/controller.ts`
+- `src/services/routes/model.ts`
+- `src/services/routes/osrm.ts`
+- `src/services/routes/repository.ts`
+- `src/services/routes/routes.test.ts`
+- `src/services/routes/view.ts`
+
+## v0.3 修改文件
+
+- `README.md`
+- `android/app/build.gradle`
+- `android/app/capacitor.build.gradle`
+- `android/app/src/main/AndroidManifest.xml`
+- `android/capacitor.settings.gradle`
+- `capacitor.config.ts`
+- `docs/android.md`
+- `docs/architecture.md`
+- `docs/file-inventory.md`
+- `package-lock.json`
+- `package.json`
+- `src/app/App.tsx`
+- `src/features/map/Map.module.css`
+- `src/features/map/MapPage.test.tsx`
+- `src/features/map/MapPage.tsx`
+- `src/features/plan/PlanPage.test.tsx`
+- `src/features/plan/PlanPage.tsx`
+- `src/features/today/TodayPage.test.tsx`
+- `src/features/today/TodayPage.tsx`
+- `src/services/routes/types.ts`
 
 ## v0.2 新增文件
 
@@ -110,6 +151,7 @@
 - `docs/architecture.md`
 - `docs/file-inventory.md`
 - `docs/verification-v0.2.md`
+- `docs/verification-v0.3.md`
 - `docs/verification.md`
 - `eslint.config.js`
 - `index.html`
@@ -129,6 +171,11 @@
 - `src/features/plan/Plan.module.css`
 - `src/features/plan/PlanPage.test.tsx`
 - `src/features/plan/PlanPage.tsx`
+- `src/features/routes/AmapButton.tsx`
+- `src/features/routes/DayRouteSummary.test.tsx`
+- `src/features/routes/DayRouteSummary.tsx`
+- `src/features/routes/MapRouteOverview.tsx`
+- `src/features/routes/Routes.module.css`
 - `src/features/today/NoteEditor.test.tsx`
 - `src/features/today/NoteEditor.tsx`
 - `src/features/today/Today.module.css`
@@ -140,7 +187,16 @@
 - `src/features/travel/TravelSaveFeedback.tsx`
 - `src/features/travel/TravelToolbar.tsx`
 - `src/main.tsx`
+- `src/services/navigation/amap.test.tsx`
+- `src/services/navigation/amap.ts`
+- `src/services/routes/RoutesContext.tsx`
+- `src/services/routes/controller.ts`
+- `src/services/routes/model.ts`
+- `src/services/routes/osrm.ts`
+- `src/services/routes/repository.ts`
+- `src/services/routes/routes.test.ts`
 - `src/services/routes/types.ts`
+- `src/services/routes/view.ts`
 - `src/services/storage/android.ts`
 - `src/services/storage/index.ts`
 - `src/services/storage/types.ts`

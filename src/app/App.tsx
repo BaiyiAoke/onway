@@ -23,6 +23,7 @@ import { ErrorBoundary } from '../components/ErrorBoundary'
 import styles from './App.module.css'
 import { BackHandlerProvider, useBackRegistry } from '../components/BackHandler'
 import { TravelProvider } from '../services/travel/TravelContext'
+import { RoutesProvider } from '../services/routes/RoutesContext'
 
 const MapPage = lazy(() => import('../features/map/MapPage'))
 const links = [
@@ -35,7 +36,9 @@ export function App() {
   return (
     <BackHandlerProvider>
       <TravelProvider>
-        <AppShell />
+        <RoutesProvider>
+          <AppShell />
+        </RoutesProvider>
       </TravelProvider>
     </BackHandlerProvider>
   )
@@ -161,7 +164,7 @@ function AppShell() {
           <RouteIcon size={14} /> 把计划装进口袋，把时间留给路上。
         </span>
         <span>
-          ONWAY · 0.2 <ArrowUpRight size={12} />
+          ONWAY · 0.3 <ArrowUpRight size={12} />
         </span>
       </footer>
     </div>

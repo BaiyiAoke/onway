@@ -101,3 +101,12 @@ describe('今天页的真实行程', () => {
     },
   )
 })
+
+vi.mock('../../services/routes/RoutesContext', () => ({
+  useRoutes: () => ({
+    state: { status: 'ready', entries: {}, operations: {}, error: null },
+    calculate: vi.fn(),
+    retrySave: vi.fn(),
+    reload: vi.fn(),
+  }),
+}))

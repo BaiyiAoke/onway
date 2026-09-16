@@ -1,12 +1,17 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { CachedRoute } from '../../services/routes/model'
+import { routeFingerprint, routeKey } from '../../services/routes/model'
 import type { Trip } from '../../services/travel/types'
 import type { PlaceDraft } from '../travel/PlaceEditor'
 
 const state = vi.hoisted(() => ({
+  entries: {} as Record<string, CachedRoute>,
   maps: [] as {
     handlers: Record<string, (event?: unknown) => void>
+    sources: Map<string, { data: unknown; setData: ReturnType<typeof vi.fn> }>
+    addLayer: ReturnType<typeof vi.fn>
     remove: ReturnType<typeof vi.fn>
     fitBounds: ReturnType<typeof vi.fn>
     easeTo: ReturnType<typeof vi.fn>
@@ -27,6 +32,23 @@ vi.mock('maplibre-gl', () => ({
   Map: class {
     handlers: Record<string, (event?: unknown) => void> = {}
     container: HTMLElement
+    sources = new Map<
+      string,
+      { data: unknown; setData: ReturnType<typeof vi.fn> }
+    >()
+    addSource(id: string, options: { data: unknown }) {
+      const source = {
+        data: options.data,
+        setData: vi.fn(async (data: unknown) => {
+          source.data = data
+        }),
+      }
+      this.sources.set(id, source)
+    }
+    getSource(id: string) {
+      return this.sources.get(id)
+    }
+    addLayer = vi.fn()
     fitBounds = vi.fn()
     easeTo = vi.fn()
     dispatchClick = (event: MouseEvent) => {
@@ -173,6 +195,7 @@ function page(path = '/map') {
 
 describe('地图编辑与生命周期', () => {
   beforeEach(() => {
+    state.entries = {}
     state.maps = []
     state.markers = []
     state.travel.activeTrip = exampleTrip()
@@ -325,4 +348,99 @@ describe('地图编辑与生命周期', () => {
     ).not.toBeInTheDocument()
     expect(state.maps).toHaveLength(1)
   })
+})
+
+vi.mock('../../services/routes/RoutesContext', () => ({
+  useRoutes: () => ({
+    state: {
+      status: 'ready',
+      entries: state.entries,
+      operations: {},
+      error: null,
+    },
+    calculate: vi.fn(),
+    retrySave: vi.fn(),
+    reload: vi.fn(),
+  }),
+}))
+
+it('按天独立画线，全部不连接跨天，失效与筛选清空路线但不重建地图', () => {
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      observe() {}
+      disconnect() {}
+    },
+  )
+  state.travel.status = 'ready'
+  state.markers = []
+  const trip = exampleTrip()
+  trip.days[0].places.push({
+    ...trip.days[0].places[0],
+    id: 'place-2',
+    name: '张掖',
+    coordinates: { longitude: 100.4498, latitude: 38.9259, crs: 'WGS84' },
+  })
+  trip.days.push({
+    id: 'day-2',
+    places: trip.days[0].places.map((p) => ({ ...p, id: p.id + '-other' })),
+  })
+  state.travel.activeTrip = trip
+  state.travel.group = 'all'
+  state.maps = []
+  state.entries = Object.fromEntries(
+    trip.days.map((day) => [
+      routeKey(trip.id, day.id),
+      {
+        tripId: trip.id,
+        dayId: day.id,
+        fingerprint: routeFingerprint(day),
+        result: {
+          geometry: {
+            type: 'LineString' as const,
+            coordinates: day.places.map(
+              (p) =>
+                [p.coordinates.longitude, p.coordinates.latitude] as [
+                  number,
+                  number,
+                ],
+            ),
+          },
+          distanceMeters: 200000,
+          durationSeconds: 7200,
+          source: '测试路线',
+          calculatedAt: '2026-09-16T01:00:00Z',
+          legs: [
+            {
+              fromIndex: 0,
+              toIndex: 1,
+              distanceMeters: 200000,
+              durationSeconds: 7200,
+            },
+          ],
+        },
+      },
+    ]),
+  )
+  const view = render(page())
+  act(() => state.maps[0].handlers.load())
+  const data = () =>
+    state.maps[0].sources.get('onway-driving-routes')?.data as {
+      features: unknown[]
+    }
+  expect(data().features).toHaveLength(2)
+  state.travel.group = 'day-1'
+  view.rerender(page())
+  expect(data().features).toHaveLength(1)
+  const changed = structuredClone(trip)
+  changed.days[0].places.reverse()
+  state.travel.activeTrip = changed
+  view.rerender(page())
+  expect(data().features).toHaveLength(0)
+  expect(screen.getByText(/路线待更新/)).toBeVisible()
+  state.travel.group = 'unscheduled'
+  view.rerender(page())
+  expect(data().features).toHaveLength(0)
+  expect(state.maps).toHaveLength(1)
+  expect(state.maps[0].addLayer).toHaveBeenCalledTimes(2)
 })
