@@ -1,6 +1,6 @@
 # 在途 Onway
 
-v0.5 个人旅行工具：独立收藏地点、按天安排多个行程、估算自驾路线，并在 Android 上打开高德导航。Web 与 Android 共用 React 界面，各自保存本地数据，不连接 TREK 或业务后端。
+v0.5.1 个人旅行工具：独立收藏地点、按天安排多个行程、估算自驾路线，并在 Android 上打开高德导航。Web 与 Android 共用 React 界面，各自保存本地数据，不连接 TREK 或业务后端。
 
 ## 开发与构建
 
@@ -16,7 +16,7 @@ npm run android:debug
 
 开发页面为 [http://127.0.0.1:5175/#/today](http://127.0.0.1:5175/#/today)。localhost 与 127.0.0.1 是不同的 IndexedDB 存储来源。
 
-Android 最低 **Android 12 / API 31**。版本 **0.5.0 / versionCode 5**，包名 `app.onway.personal`，Debug APK 位于 `artifacts/onway-debug.apk`。
+Android 最低 **Android 12 / API 31**。版本 **0.5.1 / versionCode 6**，包名 `app.onway.personal`，Debug APK 位于 `artifacts/onway-debug.apk`。
 
 ## 使用
 
@@ -79,6 +79,7 @@ Android 最低 **Android 12 / API 31**。版本 **0.5.0 / versionCode 5**，包�
 
 - [架构说明](docs/architecture.md)
 - [Android 开发](docs/android.md)
+- [v0.5.1 验证记录](docs/verification-v0.5.1.md)
 - [v0.5 验证记录](docs/verification-v0.5.md)
 - [v0.4 历史验证](docs/verification-v0.4.md)
 - [v0.3 历史验证](docs/verification-v0.3.md)

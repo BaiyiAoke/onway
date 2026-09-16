@@ -1,18 +1,36 @@
 /* 编辑面板与原生对话框遮罩 */
 .panel {
-  color: var(--ink);
-  background: #fffefa;
-  border: 1px solid var(--line);
-  border-radius: 24px;
+  color: var(--text-primary);
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
   padding: 28px;
   width: min(560px, calc(100% - 36px));
   max-height: calc(100dvh - 48px - var(--safe-top) - var(--safe-bottom));
   overflow-y: auto;
   overscroll-behavior: contain;
-  box-shadow: 0 24px 100px #14261930;
+  box-shadow: var(--shadow-panel);
+}
+/* 用 keyframes 而非 @starting-style，兼容 Android 12 的旧版 WebView */
+.panel[open] {
+  animation: panelIn var(--motion-base);
+}
+.panel[open]::backdrop {
+  animation: backdropIn var(--motion-base);
+}
+@keyframes panelIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+}
+@keyframes backdropIn {
+  from {
+    opacity: 0;
+  }
 }
 .panel::backdrop {
-  background: #17211cc0;
+  background: var(--scrim-backdrop);
   backdrop-filter: blur(3px);
 }
 .header {
@@ -31,13 +49,17 @@
 .close {
   display: grid;
   place-items: center;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border-subtle);
   background: transparent;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
+  border-radius: var(--radius-round);
+  width: var(--control-height-xs);
+  height: var(--control-height-xs);
   flex-shrink: 0;
-  color: var(--ink);
+  color: var(--text-primary);
+}
+.close:hover {
+  background: var(--surface-subtle);
+  border-color: var(--border-strong);
 }
 .actions {
   display: flex;
@@ -50,7 +72,7 @@
   padding-block: 8px;
 }
 .discard h3 {
-  font-size: 19px;
+  font-size: var(--text-xl);
 }
 /* 手机底部编辑抽屉，软键盘缩小时内部可滚动 */
 @media (max-width: 700px) {
@@ -59,7 +81,13 @@
     width: 100%;
     max-width: none;
     max-height: calc(100dvh - var(--safe-top) - 16px);
-    border-radius: 24px 24px 0 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     padding: 25px 22px calc(24px + var(--safe-bottom));
+  }
+  @keyframes panelIn {
+    from {
+      opacity: 0;
+      transform: translateY(40px);
+    }
   }
 }

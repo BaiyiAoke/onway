@@ -181,7 +181,7 @@ function AppShell({
         </ErrorBoundary>
       </main>
       <footer className={styles.footer}>
-        <span>Onway 0.5</span>
+        <span>Onway 0.5.1</span>
       </footer>
     </div>
   )

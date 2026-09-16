@@ -1,5 +1,50 @@
 # Android 开发与验收
 
+## USB 打包安装（本机日常使用）
+
+以下命令在电脑的 **同一个 PowerShell 窗口** 中逐行执行，只连接一部手机。只复制代码块里的命令，不要复制 `PS ...>`、`>>` 等提示符；命令前的 `&` 必须保留，末尾不要加 `\`。
+
+### 第一步：连接手机
+
+用支持数据传输的 USB 线连接，解锁手机，开启「开发者选项 → USB 调试」。USB 用途选择「传输文件」，手机弹出授权时点「允许」。
+
+### 第二步：检查连接
+
+```powershell
+cd D:\Web_Workplace\onway
+$onwayAdb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
+Test-Path -LiteralPath $onwayAdb
+& $onwayAdb devices
+```
+
+`Test-Path` 显示 `True` 后再执行 `devices`。若为 `False`，先打开 Android Studio 的 SDK Manager，查看 **Android SDK Location**，确认已安装 **Android SDK Platform-Tools**，然后把 `$onwayAdb` 改成该 SDK 下的 `platform-tools\adb.exe` 实际路径。
+
+设备编号后显示 `device` 就可以继续；显示 `unauthorized` 时在手机上确认授权；没有设备时重新插拔 USB。项目目录以你实际保存的位置为准，上面的路径是本工程当前工作目录。
+
+### 第三步：打包最新代码
+
+```powershell
+npm run android:debug
+```
+
+等到出现 `BUILD SUCCESSFUL` 和 `APK:` 路径再继续。APK 位于 `D:\Web_Workplace\onway\artifacts\onway-debug.apk`；如果打包失败，先不要安装，以免装入旧包。
+
+### 第四步：覆盖安装到手机
+
+```powershell
+& $onwayAdb -d install -r .\artifacts\onway-debug.apk
+```
+
+显示 `Success` 即安装完成。`-r` 会保留现有行程和备注，不要先卸载旧版；手机若提示允许安装，请确认。
+
+### 第五步：打开 Onway
+
+```powershell
+& $onwayAdb -d shell am start -n app.onway.personal/.MainActivity
+```
+
+也可以直接点击手机上的 Onway 图标。安装后可拔掉 USB，无需启动电脑上的 `npm run dev`。以后更新代码，重复上述步骤即可。
+
 ## 工具链与版本
 
 本工程使用 Capacitor 8.5.1、兼容 Capacitor 8 的 SQLite 插件 8.1.1；v0.3 新增 App Launcher 8.0.1；精确依赖见 package-lock.json。v0.2 最低系统调整为 **Android 12（API 31）**，不安排 Android 10／11 等低版本兼容。目标验收设备为用户的 Android 12 手机。
@@ -7,7 +52,7 @@
 | 项目                  | 工程配置                              |
 | --------------------- | ------------------------------------- |
 | 应用身份              | `app.onway.personal` / 在途 Onway     |
-| 应用版本              | `0.5.0` / `versionCode 5`             |
+| 应用版本              | `0.5.1` / `versionCode 6`             |
 | 最低 SDK              | 31                                    |
 | 编译／目标 SDK        | 36 / 36                               |
 | Build Tools           | 35.0.0（AGP 默认；本机另装有 36.0.0） |

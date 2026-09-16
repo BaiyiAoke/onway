@@ -8,10 +8,10 @@
 .mapCard {
   height: 550px;
   position: relative;
-  border: 1px solid #dfe3d8;
-  border-radius: 24px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
   overflow: hidden;
-  background: #e7eade;
+  background: var(--brand-200);
 }
 .canvas {
   position: absolute;
@@ -21,34 +21,39 @@
   cursor: crosshair;
 }
 .marker {
-  border: 3px solid #fffefa;
-  border-radius: 50%;
-  background: #3f5e49;
-  color: white;
+  border: 3px solid var(--surface-card);
+  border-radius: var(--radius-round);
+  background: var(--brand-600);
+  color: var(--text-on-dark);
   height: 39px;
   width: 39px;
-  box-shadow: 0 3px 12px #273d3933;
-  font-size: 13px;
+  box-shadow: var(--shadow-marker);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
 }
 .temporary {
   display: grid;
   place-items: center;
-  background: #9a7145;
+  background: var(--warn-500);
   border-style: dashed;
-  font-size: 23px;
+  font-size: var(--text-2xl);
   pointer-events: none;
 }
 .fit {
   position: absolute;
   top: 15px;
   right: 15px;
-  border: 1px solid #e0e4d9;
-  background: #fffefa;
-  border-radius: 12px;
-  width: 43px;
-  height: 43px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-card);
+  border-radius: var(--radius-sm);
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
   display: grid;
   place-items: center;
+}
+.fit:hover:not(:disabled) {
+  background: var(--brand-050);
+  border-color: var(--brand-400);
 }
 .loading,
 .error,
@@ -57,19 +62,19 @@
   top: 17px;
   left: 17px;
   right: 73px;
-  border-radius: 14px;
-  background: #fffefaf2;
+  border-radius: var(--radius-md);
+  background: var(--surface-overlay);
   padding: 16px;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 .error {
   top: 80px;
   right: 17px;
-  box-shadow: 0 6px 30px #273d3910;
+  box-shadow: var(--shadow-float);
 }
 .error p {
   margin-top: 7px;
-  color: var(--muted);
+  color: var(--text-muted);
 }
 .hint {
   padding: 12px;
@@ -85,9 +90,9 @@
   gap: 14px;
   margin-bottom: 18px;
   padding: 18px;
-  background: #edf0e7;
-  border-radius: 16px;
-  font-size: 13px;
+  background: var(--brand-100);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
 }
 .emptyTrip > div,
 .pickBanner > div {
@@ -96,11 +101,11 @@
 .emptyTrip p,
 .pickBanner p {
   margin: 4px 0 0;
-  font-size: 12px;
-  color: var(--muted);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
 }
 .pickBanner {
-  background: #f0e9da;
+  background: var(--warn-100);
 }
 .pickBanner > svg {
   flex-shrink: 0;
@@ -113,12 +118,12 @@
   border: 0;
   background: transparent;
   white-space: nowrap;
-  color: var(--ink);
-  min-height: 44px;
+  color: var(--text-primary);
+  min-height: var(--control-height-sm);
 }
 .popup {
   font:
-    13px/1.6 'Segoe UI',
+    var(--text-sm) / 1.6 'Segoe UI',
     'Microsoft YaHei',
     sans-serif;
   padding: 7px 5px 3px;
@@ -127,13 +132,13 @@
 }
 .popup strong {
   display: block;
-  font-size: 15px;
+  font-size: var(--text-md);
   padding-right: 14px;
 }
 .popup span {
   display: block;
-  font-size: 11px;
-  color: var(--muted);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
   margin-top: 3px;
 }
 .popup p {
@@ -143,20 +148,23 @@
   margin: 10px 0;
 }
 .popupEdit {
-  background: var(--ink);
-  color: white;
+  background: var(--text-primary);
+  color: var(--text-on-dark);
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-xs);
   padding: 8px 13px;
-  min-height: 40px;
+  min-height: var(--control-height-xs);
+}
+.popupEdit:hover {
+  background: var(--brand-700);
 }
 /* 地点清单在底图失效时依然可操作 */
 .places {
   min-width: 0;
 }
 .places h2 > span {
-  font-size: 13px;
-  color: var(--muted);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
   margin-left: 4px;
 }
 .places ol {
@@ -169,11 +177,12 @@
   gap: 11px;
   align-items: center;
   padding: 16px 0;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--border-subtle);
 }
 .order {
-  color: #839577;
-  font-size: 12px;
+  color: var(--text-brand-faint);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
 }
 .places li > div {
   flex: 1;
@@ -181,37 +190,49 @@
   overflow-wrap: anywhere;
 }
 .places li p {
-  font-size: 11px;
-  color: var(--muted);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
   margin: 0;
 }
 .places li .placeNote {
-  color: #545f51;
+  color: var(--text-secondary);
   margin-top: 5px;
   white-space: pre-wrap;
 }
 .edit {
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: #f8f8f3;
-  color: var(--accent);
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  color: var(--brand-500);
   flex-shrink: 0;
+}
+.edit:hover {
+  background: var(--brand-050);
+  border-color: var(--brand-400);
 }
 .emptyPlaces {
   padding: 30px 0 4px;
-  color: var(--muted);
+  color: var(--text-muted);
+  text-align: center;
+}
+.emptyPlaces > svg {
+  box-sizing: content-box;
+  padding: 14px;
+  border-radius: var(--radius-round);
+  background: var(--brand-100);
+  color: var(--brand-500);
 }
 .emptyPlaces p {
-  font-size: 13px;
+  font-size: var(--text-sm);
   margin-top: 12px;
 }
 .note {
-  font-size: 11px;
-  color: var(--muted);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
   margin: 25px 0 0;
 }
 /* 手机上地图优先，地点列表保持可读 */
@@ -244,7 +265,7 @@
   }
   .pickBanner button {
     padding: 0;
-    font-size: 12px;
+    font-size: var(--text-sm);
   }
 }
 .toolbarLock {
@@ -256,21 +277,25 @@
 
 /* 地点弹窗中的外部导航入口 */
 .popupNavigate {
-  border: 1px solid #d5dccf;
-  border-radius: 8px;
-  background: #fffefa;
-  color: #526a51;
-  min-height: 40px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xs);
+  background: var(--surface-card);
+  color: var(--text-brand);
+  min-height: var(--control-height-xs);
   padding: 8px 13px;
   margin-left: 8px;
 }
+.popupNavigate:hover {
+  background: var(--brand-050);
+  border-color: var(--brand-400);
+}
 .popup .navigationMessage {
-  font-size: 10px;
-  color: #747970;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
   margin: 8px 0 0;
 }
 .popup .navigationMessage[role='alert'] {
-  color: #a04e44;
+  color: var(--danger-text);
 }
 
 /* 地点添加入口 */

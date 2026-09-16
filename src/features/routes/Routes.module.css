@@ -1,8 +1,8 @@
 /* 每日路线摘要与请求反馈 */
 .summary {
-  background: #f0f3eb;
-  border: 1px solid #dfe6d7;
-  border-radius: 16px;
+  background: var(--brand-050);
+  border: 1px solid var(--border-brand);
+  border-radius: var(--radius-md);
   padding: 17px 18px;
   margin: 15px 0;
   min-width: 0;
@@ -19,8 +19,8 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
-  color: #526a51;
+  font-size: var(--text-sm);
+  color: var(--text-brand);
   margin: 0 0 7px;
 }
 .metrics {
@@ -31,34 +31,36 @@
   margin: 0;
 }
 .metrics strong {
-  font-size: 20px;
+  font-size: var(--text-xl);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 .metrics span {
-  font-size: 13px;
-  color: #53634f;
+  font-size: var(--text-sm);
+  color: var(--text-brand-muted);
 }
 .summary .hint {
-  color: #636e60;
-  font-size: 11px;
+  color: var(--text-brand-muted);
+  font-size: var(--text-xs);
   margin: 6px 0 0;
 }
 .summary .error {
-  color: #a04e44;
-  font-size: 12px;
+  color: var(--danger-text);
+  font-size: var(--text-sm);
   margin-top: 9px;
 }
 .error p {
   margin: 0;
 }
 .disclosure {
-  color: #747970;
-  font-size: 10px;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
   margin: 12px 0 0;
 }
 .attribution {
-  font-size: 10px;
-  color: #636e60;
+  font-size: var(--text-xs);
+  line-height: 1.7;
+  color: var(--text-brand-muted);
   margin: 6px 0 0;
 }
 .attribution a {
@@ -71,8 +73,8 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 5px;
-  color: #64775e;
-  font-size: 11px;
+  color: var(--text-brand-muted);
+  font-size: var(--text-xs);
   line-height: 1.7;
   margin: 0 0 9px;
   overflow-wrap: anywhere;
@@ -84,8 +86,8 @@
   margin: 0 0 17px;
 }
 .overview p {
-  font-size: 12px;
-  color: var(--muted);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
   margin: 0 0 6px;
 }
 .legend {
@@ -97,7 +99,7 @@
   display: inline-block;
   width: 17px;
   height: 4px;
-  border-radius: 4px;
+  border-radius: var(--radius-pill);
 }
 /* 外部导航与窄屏排布 */
 .navigation {
@@ -107,11 +109,11 @@
   max-width: 100%;
 }
 .navigation button {
-  min-height: 40px;
+  min-height: var(--control-height-xs);
 }
 .navigation .failure {
-  color: #a04e44;
-  font-size: 11px;
+  color: var(--danger-text);
+  font-size: var(--text-xs);
   margin: 0;
   max-width: 260px;
 }
@@ -120,18 +122,18 @@
     padding: 15px;
   }
   .metrics strong {
-    font-size: 19px;
+    font-size: var(--text-lg);
   }
   .summaryTop > button {
-    min-height: 42px;
+    min-height: var(--control-height-sm);
   }
 }
 
 /* 次要路线说明按需展开 */
 .details {
   margin-top: 10px;
-  font-size: 11px;
-  color: var(--muted);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
 }
 .details summary {
   cursor: pointer;

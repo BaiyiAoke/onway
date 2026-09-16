@@ -1,0 +1,39 @@
+/* 地点次要操作的收纳菜单 */
+.root {
+  position: relative;
+  display: inline-flex;
+}
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  display: grid;
+  gap: 2px;
+  min-width: 168px;
+  padding: 8px 14px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-float);
+  animation: menuIn var(--motion-fast);
+}
+@keyframes menuIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+/* 菜单里的文字按钮改为整行可点 */
+.menu :global(.textButton) {
+  justify-content: flex-start;
+  width: 100%;
+  padding: 9px 0;
+}
+/* 贴右边缘时向左展开，避免超出卡片 */
+@media (max-width: 700px) {
+  .menu {
+    left: auto;
+    right: 0;
+  }
+}

@@ -14,20 +14,24 @@
 .filters label {
   display: grid;
   gap: 7px;
-  font-size: 12px;
-  color: var(--muted);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
 }
+/* 输入控件保持 16px，低于此值 iOS 聚焦会自动放大页面 */
 .filters input,
 .filters select {
   min-width: 0;
   width: 100%;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: white;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-field);
   padding: 12px;
   font: inherit;
   font-size: 16px;
-  color: var(--ink);
+  color: var(--text-primary);
+}
+.filters select {
+  padding-inline-end: var(--select-chevron-space);
 }
 .list {
   display: grid;
@@ -39,13 +43,13 @@
   min-width: 0;
 }
 .place h2 {
-  font-size: 18px;
+  font-size: var(--text-lg);
   margin: 8px 0;
   overflow-wrap: anywhere;
 }
 .place p {
-  color: var(--muted);
-  font-size: 13px;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
@@ -58,22 +62,22 @@
   justify-content: space-between;
   align-items: center;
   gap: 10px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--border-subtle);
   padding: 10px 0;
 }
 .empty {
   padding: 30px;
   text-align: center;
-  color: var(--muted);
+  color: var(--text-muted);
 }
 /* 独立地图及选点面板 */
 .map {
   height: min(52dvh, 480px);
   min-height: 240px;
-  border-radius: 16px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   position: relative;
-  background: #ecefe8;
+  background: var(--brand-100);
   margin: 16px 0;
 }
 .canvas {
@@ -83,7 +87,7 @@
 .overlay {
   position: absolute;
   inset: 0;
-  background: #f7f7f1ed;
+  background: var(--surface-overlay);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -99,13 +103,13 @@
   z-index: 2;
 }
 .marker {
-  border: 2px solid white;
-  background: var(--ink);
-  color: white;
-  border-radius: 50%;
+  border: 2px solid var(--surface-card);
+  background: var(--text-primary);
+  color: var(--text-on-dark);
+  border-radius: var(--radius-round);
   min-width: 36px;
   height: 36px;
-  box-shadow: 0 2px 8px #0003;
+  box-shadow: var(--shadow-marker);
   cursor: pointer;
 }
 @media (max-width: 700px) {
@@ -136,14 +140,14 @@
 .searchBar input {
   width: 100%;
   min-width: 0;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  background: white;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: var(--surface-field);
   padding: 13px;
   font: inherit;
   font-size: 16px;
-  color: var(--ink);
-  min-height: 46px;
+  color: var(--text-primary);
+  min-height: var(--control-height);
 }
 .searchBar button {
   flex-shrink: 0;
@@ -153,35 +157,35 @@
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  color: var(--muted);
-  font-size: 12px;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
 }
 .searchMeta :global(.textButton) {
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 .searchResults {
   max-height: 380px;
   overflow-y: auto;
   overscroll-behavior: contain;
-  background: #fffefa;
-  border: 1px solid var(--line);
-  border-radius: 16px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   padding: 14px;
 }
 .searchResult {
   padding: 12px 0;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--border-subtle);
 }
 .searchResult:last-child {
   border-bottom: 0;
 }
 .searchResult h3 {
   margin: 0 0 6px;
-  font-size: 15px;
+  font-size: var(--text-md);
 }
 .searchResult p {
-  color: var(--muted);
-  font-size: 12px;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
   margin: 0 0 12px;
   overflow-wrap: anywhere;
 }

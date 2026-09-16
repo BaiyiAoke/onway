@@ -1,6 +1,6 @@
 # 工程文件清单
 
-以下清单包含当前 v0.3 相对 v0.2 的改动，并保留 v0.2 历史清单，主分支为 main。构建产物、测试截图、node_modules 和机器路径均被忽略。
+以下清单记录各版本改动，当前版本为 v0.5.1，并保留历史清单，主分支为 main。构建产物、测试截图、node_modules 和机器路径均被忽略。
 
 ## v0.3 新增文件
 
@@ -238,3 +238,12 @@
 - src/app/App.tsx、App.module.css：顶部备份入口与恢复后的 Provider 刷新；PlaceEditor.tsx 区分收藏和行程编辑。
 - package.json、锁文件、capacitor.config.ts、android/app/build.gradle：0.5.0 / code 5，无新增第三方依赖。
 - README、architecture、android、verification-v0.5.md：格式、实现与验收说明。
+
+## v0.5.1 视觉基础收口
+
+- 新增 src/components/ActionMenu.tsx 和 ActionMenu.module.css，将地点的次要操作收进“更多”菜单。
+- src/styles/global.css 与各页面 CSS Modules：统一颜色、字阶、圆角、控件高度、阴影和动效，优化输入焦点、下拉箭头、空状态及手机插画。
+- src/features/plan/PlanPage.tsx：接入更多菜单；src/features/map/MapPage.tsx 与 src/services/routes/model.ts：集中地图路线外描边颜色。
+- package.json、锁文件、capacitor.config.ts、android/app/build.gradle、页脚和备份元数据：统一为 0.5.1 / code 6，无新增依赖或数据结构迁移。
+- docs/android.md：补充 USB 连接、打包、覆盖安装及启动命令；README 与架构说明同步当前版本。
+- 验证范围与未完成项见 [v0.5.1 验证记录](verification-v0.5.1.md)。

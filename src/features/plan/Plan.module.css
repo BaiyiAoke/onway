@@ -4,17 +4,20 @@
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  background: #eaeee2;
+}
+/* 与全局 .card 同特异性会被其背景压过，这里显式提权 */
+:global(.card).intro {
+  background: var(--brand-200);
 }
 .intro h2 {
   overflow-wrap: anywhere;
 }
 .intro p {
   margin-bottom: 0;
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 .intro .eyebrow {
-  font-size: 10px;
+  font-size: var(--text-xs);
   margin-bottom: 8px;
 }
 .actions,
@@ -31,10 +34,19 @@
 .empty {
   text-align: center;
   padding: 65px 25px;
-  color: var(--muted);
+  color: var(--text-muted);
+}
+/* 空状态图标用圆底衬托；content-box 让 padding 加在 lucide 的固定尺寸外 */
+.empty > svg,
+.emptyDay > svg {
+  box-sizing: content-box;
+  padding: 16px;
+  border-radius: var(--radius-round);
+  background: var(--brand-100);
+  color: var(--brand-500);
 }
 .empty h2 {
-  color: var(--ink);
+  color: var(--text-primary);
   margin-top: 20px;
 }
 .empty .actions {
@@ -52,7 +64,7 @@
   gap: 16px;
 }
 .dayHeading h2 {
-  font-size: 19px;
+  font-size: var(--text-xl);
 }
 .dayHeading p {
   margin-bottom: 6px;
@@ -66,7 +78,7 @@
   display: flex;
   align-items: flex-start;
   gap: 18px;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid var(--border-subtle);
   padding: 24px 0;
 }
 .place:first-child {
@@ -76,8 +88,9 @@
   padding-bottom: 0;
 }
 .index {
-  font-size: 25px;
-  color: #9ca991;
+  font-size: var(--text-2xl);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-brand-faint);
   font-weight: 300;
   flex-shrink: 0;
   width: 36px;
@@ -90,8 +103,8 @@
   overflow-wrap: anywhere;
 }
 .placeMain p {
-  font-size: 13px;
-  color: var(--muted);
+  font-size: var(--text-sm);
+  color: var(--text-muted);
   margin: 6px 0 8px;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -111,14 +124,14 @@
 }
 .placeTools select {
   width: 100%;
-  padding: 10px;
-  border: 1px solid var(--line);
-  border-radius: 11px;
-  min-height: 42px;
-  color: var(--ink);
-  background: #fffefa;
+  padding: 10px var(--select-chevron-space) 10px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  min-height: var(--control-height-sm);
+  color: var(--text-primary);
+  background-color: var(--surface-card);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 .iconActions {
   display: flex;
@@ -126,19 +139,19 @@
 }
 .emptyDay {
   padding: 28px 0 8px;
-  color: var(--muted);
+  color: var(--text-muted);
   text-align: center;
 }
 .emptyDay p {
   margin: 8px 0;
-  font-size: 13px;
+  font-size: var(--text-sm);
 }
 .notice {
   display: flex;
   gap: 12px;
-  color: var(--muted);
+  color: var(--text-muted);
   margin: 25px 0 5px;
-  font-size: 12px;
+  font-size: var(--text-sm);
 }
 .notice svg {
   flex-shrink: 0;
@@ -174,6 +187,6 @@
     align-items: flex-start;
   }
   .dayHeading h2 {
-    font-size: 17px;
+    font-size: var(--text-lg);
   }
 }

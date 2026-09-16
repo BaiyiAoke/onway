@@ -22,7 +22,7 @@ import { TravelToolbar } from '../travel/TravelToolbar'
 import styles from './Map.module.css'
 import { useRoutes } from '../../services/routes/RoutesContext'
 import { visibleDayRoutes } from '../../services/routes/view'
-import { ROUTE_COLORS } from '../../services/routes/model'
+import { ROUTE_COLORS, ROUTE_HALO_COLOR } from '../../services/routes/model'
 import { MapRouteOverview } from '../routes/MapRouteOverview'
 import { RouteAttribution } from '../routes/DayRouteSummary'
 import { canUseAmap, navigateWithAmap } from '../../services/navigation/amap'
@@ -363,7 +363,7 @@ export default function MapPage() {
         source: 'onway-driving-routes',
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: {
-          'line-color': '#fffefa',
+          'line-color': ROUTE_HALO_COLOR,
           'line-width': 8,
           'line-opacity': 0.8,
         },

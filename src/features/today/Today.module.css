@@ -3,8 +3,8 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   min-height: 306px;
-  border-radius: 26px;
-  background: #e5e8dc;
+  border-radius: var(--radius-lg);
+  background: var(--hero-sky);
   overflow: hidden;
   margin-bottom: 24px;
   position: relative;
@@ -15,29 +15,33 @@
   padding: 35px 39px;
 }
 .heroTag {
-  color: #5f6e58;
-  font-size: 11px;
+  color: var(--text-brand-muted);
+  font-size: var(--text-xs);
   letter-spacing: 0.08em;
 }
 .heroContent h2 {
   margin: 20px 0 13px;
-  font-size: clamp(29px, 3.5vw, 39px);
+  font-size: var(--text-3xl);
   line-height: 1.5;
   font-weight: 500;
   overflow-wrap: anywhere;
 }
 .heroContent p {
-  font-size: 12px;
-  color: #66735d;
+  font-size: var(--text-sm);
+  color: var(--text-brand-muted);
   letter-spacing: 0.08em;
 }
 .heroLink {
   display: inline-flex;
   align-items: center;
   gap: 30px;
-  font-size: 12px;
-  border-bottom: 1px solid #a7b19b;
+  font-size: var(--text-sm);
+  border-bottom: 1px solid var(--hero-rule);
   padding: 10px 0 8px;
+  transition: border-color var(--motion-fast);
+}
+.heroLink:hover {
+  border-color: var(--text-primary);
 }
 .landscape {
   position: relative;
@@ -47,15 +51,15 @@
   position: absolute;
   width: 94px;
   height: 94px;
-  border-radius: 50%;
-  background: #f9f6dc;
+  border-radius: var(--radius-round);
+  background: var(--hero-sun);
   top: 32px;
   right: 29%;
 }
 .ridgeBack {
   position: absolute;
   inset: 75px -35px -2px -30px;
-  background: #bac7ac;
+  background: var(--hero-ridge-back);
   clip-path: polygon(
     0 61%,
     18% 37%,
@@ -71,7 +75,7 @@
 .ridgeFront {
   position: absolute;
   inset: 130px -45px -2px -35px;
-  background: #889e7d;
+  background: var(--hero-ridge-front);
   clip-path: polygon(
     0 58%,
     19% 24%,
@@ -86,11 +90,11 @@
   position: absolute;
   height: 170px;
   width: 105px;
-  border: 17px solid #eceddf;
+  border: 17px solid var(--hero-road);
   border-top: 0;
   border-bottom: 0;
   border-left: 0;
-  border-radius: 50%;
+  border-radius: var(--radius-round);
   bottom: -70px;
   left: 39%;
   transform: rotate(-30deg);
@@ -99,9 +103,9 @@
   position: absolute;
   bottom: 18px;
   right: 20px;
-  font-size: 8px;
+  font-size: var(--text-xs);
   letter-spacing: 0.15em;
-  color: #f4f5e9;
+  color: var(--hero-label);
 }
 /* 行程概览与首日预览 */
 .tripStats {
@@ -111,29 +115,30 @@
   margin: 0 0 24px;
 }
 .tripStats > div {
-  background: #eeeee7;
-  border-radius: 16px;
+  background: var(--surface-subtle);
+  border-radius: var(--radius-md);
   padding: 16px 20px;
 }
 .tripStats dt {
-  color: var(--muted);
-  font-size: 12px;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
 }
 .tripStats dd {
   margin: 8px 0 0;
-  font-size: 24px;
+  font-size: var(--text-2xl);
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 .tripStats dd span {
   margin-left: 7px;
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
   font-weight: 400;
 }
 .previewHint,
 .emptyHint {
-  color: var(--muted);
-  font-size: 13px;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
   line-height: 1.8;
 }
 .emptyHint {
@@ -164,7 +169,7 @@
   list-style: none;
 }
 .placeList li {
-  border-bottom: 1px solid #eeeee7;
+  border-bottom: 1px solid var(--surface-subtle);
 }
 .placeLink {
   display: flex;
@@ -172,6 +177,16 @@
   gap: 16px;
   padding: 14px 0;
   min-height: 62px;
+}
+.placeLink > svg {
+  color: var(--text-muted);
+  transition:
+    color var(--motion-fast),
+    transform var(--motion-fast);
+}
+.placeLink:hover > svg {
+  color: var(--text-primary);
+  transform: translate(2px, -2px);
 }
 .placeLink > div {
   flex: 1;
@@ -183,15 +198,16 @@
   flex-shrink: 0;
 }
 .placeList p {
-  font-size: 11px;
-  color: var(--muted);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
   margin: 0;
 }
 .number {
-  font-size: 12px;
-  color: #718166;
-  background: #edf0e5;
-  border-radius: 50%;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-brand-muted);
+  background: var(--brand-100);
+  border-radius: var(--radius-round);
   width: 35px;
   height: 35px;
   display: grid;
@@ -202,8 +218,11 @@
   align-items: center;
   justify-content: space-between;
   margin-top: 18px;
-  font-size: 12px;
-  color: #5e6d55;
+  font-size: var(--text-sm);
+  color: var(--text-brand-muted);
+}
+.textLink:hover {
+  color: var(--text-primary);
 }
 .notes {
   display: flex;
@@ -214,12 +233,12 @@
   min-height: 172px;
   width: 100%;
   resize: vertical;
-  border: 1px solid #e7e8df;
-  background: #f8f8f3;
-  border-radius: 15px;
+  border: 1px solid var(--border-subtle);
+  background: var(--surface-sunken);
+  border-radius: var(--radius-md);
   padding: 17px;
-  color: #4f584a;
-  font-size: 14px;
+  color: var(--text-secondary);
+  font-size: var(--text-md);
   line-height: 1.9;
 }
 .noteActions {
@@ -230,20 +249,20 @@
   margin-top: 18px;
 }
 .hint {
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
 }
 .error {
-  color: #a24031;
-  font-size: 12px;
+  color: var(--danger);
+  font-size: var(--text-sm);
 }
 .bottomNotes {
   display: flex;
   justify-content: space-between;
   gap: 15px;
   margin-top: 23px;
-  font-size: 11px;
-  color: #82877a;
+  font-size: var(--text-xs);
+  color: var(--text-faint);
 }
 .bottomNotes span {
   display: inline-flex;
@@ -259,16 +278,12 @@
   .heroContent {
     padding: 26px;
   }
-  .heroContent h2 {
-    font-size: 29px;
-  }
+  /* 窄屏用遮罩让插画左侧渐隐，保留右侧山脊与太阳的完整细节 */
   .landscape {
     position: absolute;
-    inset: 0 0 0 35%;
-    opacity: 0.55;
-  }
-  .heroContent {
-    background: linear-gradient(90deg, #e5e8dc 15%, transparent 85%);
+    inset: 0 0 0 25%;
+    mask-image: linear-gradient(90deg, transparent 12%, #000 62%);
+    -webkit-mask-image: linear-gradient(90deg, transparent 12%, #000 62%);
   }
   .landscapeLabel {
     display: none;
@@ -281,7 +296,7 @@
     padding: 14px 11px;
   }
   .tripStats dt {
-    font-size: 10px;
+    font-size: var(--text-xs);
   }
   .grid {
     grid-template-columns: 1fr;

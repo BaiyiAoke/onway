@@ -70,7 +70,7 @@ Android 导航封装在 `src/services/navigation/amap.ts`：仅使用已保存�
 
 ## 平台与构建
 
-Capacitor `webDir` 指向 `dist`，不配置 `server.url`；Hash 路由适用于浏览器和 APK 本地资源。Android 最低 API 31、编译／目标 API 36，v0.5 `versionCode` 为 5，包名仍为 `app.onway.personal`。
+Capacitor `webDir` 指向 `dist`，不配置 `server.url`；Hash 路由适用于浏览器和 APK 本地资源。Android 最低 API 31、编译／目标 API 36，v0.5.1 `versionCode` 为 6，包名仍为 `app.onway.personal`。
 
 APK 内置页面和本地存储能力，断网可管理已有数据；底图、瓦片与字体在线加载。Web 没有 Service Worker，不承诺离线冷启动。当前支持本地文件互导，不引入后端、账号、云同步、定位或离线地图下载。
 

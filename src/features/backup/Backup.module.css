@@ -16,13 +16,13 @@
   margin-top: auto;
 }
 .hint {
-  font-size: 13px;
+  font-size: var(--text-sm);
   margin: 20px 0;
 }
 .success {
   padding: 16px;
-  border-radius: 12px;
-  background: #e8efe5;
+  border-radius: var(--radius-sm);
+  background: var(--brand-100);
 }
 .preview {
   display: grid;
@@ -39,27 +39,28 @@
 .preview table {
   border-collapse: collapse;
   width: 100%;
-  font-size: 14px;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
 }
 .preview th,
 .preview td {
   text-align: left;
   padding: 10px 8px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--border-subtle);
 }
 .confirm {
   display: flex;
   align-items: flex-start;
   gap: 10px;
   line-height: 1.7;
-  font-size: 14px;
+  font-size: var(--text-sm);
 }
 .confirm input {
   width: 19px;
   height: 19px;
   flex-shrink: 0;
   margin-top: 3px;
-  accent-color: var(--ink);
+  accent-color: var(--text-primary);
 }
 .actions {
   display: flex;

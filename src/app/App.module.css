@@ -11,7 +11,7 @@
   min-height: 85px;
   padding: calc(18px + var(--safe-top)) max(32px, calc((100vw - 1096px) / 2))
     18px;
-  border-bottom: 1px solid var(--line);
+  border-bottom: 1px solid var(--border-subtle);
   gap: 20px;
 }
 .brand {
@@ -20,23 +20,23 @@
   align-items: center;
 }
 .brand > span {
-  font-size: 26px;
+  font-size: var(--text-2xl);
   letter-spacing: -0.07em;
   font-weight: 700;
 }
 .brandChinese {
-  font-size: 12px;
-  letter-spacing: 0.1em;
-  font-weight: 500;
-  color: var(--muted);
+  font-size: var(--text-sm);
+  letter-spacing: 0.12em;
+  font-weight: 600;
+  color: var(--text-muted);
   margin-left: 12px;
 }
 .nav {
   display: flex;
   gap: 7px;
   padding: 4px;
-  background: #eeeee8;
-  border-radius: 30px;
+  background: var(--surface-subtle);
+  border-radius: var(--radius-pill);
 }
 .navItem {
   display: flex;
@@ -44,26 +44,30 @@
   align-items: center;
   justify-content: center;
   padding: 11px 23px;
-  font-size: 13px;
-  border-radius: 25px;
-  color: #71786e;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
+}
+.navItem:hover:not(.active) {
+  color: var(--text-primary);
+  background: var(--surface-card);
 }
 .active {
-  background: var(--ink);
-  color: white;
+  background: var(--text-primary);
+  color: var(--text-on-dark);
 }
 .localBadge {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  font-size: 11px;
-  color: var(--muted);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
 }
 .localBadge > span {
   height: 6px;
   width: 6px;
-  border-radius: 50%;
-  background: #7a9276;
+  border-radius: var(--radius-round);
+  background: var(--brand-400);
 }
 .main {
   flex: 1;
@@ -76,8 +80,8 @@
   padding: 26px 32px 30px;
   display: flex;
   justify-content: space-between;
-  color: #8a8e84;
-  font-size: 10px;
+  color: var(--text-faint);
+  font-size: var(--text-xs);
   gap: 15px;
 }
 .footer span {
@@ -92,7 +96,7 @@
     padding: calc(18px + var(--safe-top)) 21px 18px;
   }
   .brand > span {
-    font-size: 24px;
+    font-size: var(--text-2xl);
   }
   .brandChinese {
     margin-left: 9px;
@@ -104,9 +108,9 @@
     right: 0;
     z-index: 30;
     justify-content: space-around;
-    border-top: 1px solid var(--line);
+    border-top: 1px solid var(--border-subtle);
     border-radius: 0;
-    background: #fafaf5f5;
+    background: var(--surface-nav);
     backdrop-filter: blur(14px);
     padding: 10px 20px calc(10px + var(--safe-bottom));
   }
@@ -114,6 +118,9 @@
     padding: 12px 8px;
     flex: 1;
     min-width: 0;
+  }
+  .navItem:hover:not(.active) {
+    background: transparent;
   }
   .app {
     padding-bottom: calc(78px + var(--safe-bottom));
@@ -135,10 +142,10 @@
   align-items: center;
   gap: 7px;
   padding: 10px;
-  font-size: 13px;
-  border-radius: 10px;
+  font-size: var(--text-sm);
+  border-radius: var(--radius-sm);
   white-space: nowrap;
 }
 .backupLink:hover {
-  background: #eeeee8;
+  background: var(--surface-subtle);
 }

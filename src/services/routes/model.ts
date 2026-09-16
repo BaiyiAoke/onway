@@ -3,6 +3,9 @@ import type { RouteResult, Wgs84Point } from './types'
 
 export const ROUTE_PROVIDER = 'fossgis-osrm-driving-v1-radius1000'
 export const ROUTE_SOURCE = 'OSRM · FOSSGIS / OpenStreetMap'
+// MapLibre paint 不解析 CSS var()，路线配色只能写在这里。
+// ROUTE_COLORS 是区分各天的功能色，不跟随品牌配色；
+// ROUTE_HALO_COLOR 与 CSS 的 --surface-card 同值，改配色时需同步。
 export const ROUTE_COLORS = [
   '#2563eb',
   '#0d8076',
@@ -10,6 +13,7 @@ export const ROUTE_COLORS = [
   '#b16b20',
   '#6659b8',
 ]
+export const ROUTE_HALO_COLOR = '#fffefa'
 
 export interface CachedRoute {
   tripId: string

@@ -4,6 +4,7 @@ import {
   ArrowDown,
   ArrowUp,
   CalendarDays,
+  ExternalLink,
   MapPin,
   Pencil,
   Plus,
@@ -24,6 +25,7 @@ import {
   RouteAttribution,
 } from '../routes/DayRouteSummary'
 import { AmapButton } from '../routes/AmapButton'
+import { ActionMenu } from '../../components/ActionMenu'
 import { TravelSaveFeedback } from '../travel/TravelSaveFeedback'
 
 function TripEditor({ trip, onClose }: { trip?: Trip; onClose: () => void }) {
@@ -213,18 +215,21 @@ export function PlanPage() {
                   <MapPin size={14} />
                   在地图查看
                 </Link>
-                <AmapButton place={place} />
-                <CollectPlaceButton tripId={trip.id} place={place} />
-                {place.sourceUrl && (
-                  <a
-                    className="textButton"
-                    href={place.sourceUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    地点资料
-                  </a>
-                )}
+                <ActionMenu label={place.name + '的更多操作'}>
+                  <AmapButton place={place} />
+                  <CollectPlaceButton tripId={trip.id} place={place} />
+                  {place.sourceUrl && (
+                    <a
+                      className="textButton"
+                      href={place.sourceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      <ExternalLink size={14} />
+                      地点资料
+                    </a>
+                  )}
+                </ActionMenu>
               </div>
             </div>
             <div className={styles.placeTools}>

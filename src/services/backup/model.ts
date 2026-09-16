@@ -53,7 +53,7 @@ export function createBackup(
   return {
     app: 'onway',
     formatVersion: 1,
-    appVersion: '0.5.0',
+    appVersion: '0.5.1',
     exportedAt: new Date().toISOString(),
     workspace: cleanWorkspace(workspace),
     personalNote,

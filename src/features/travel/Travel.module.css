@@ -12,52 +12,58 @@
 .selector {
   display: grid;
   gap: 8px;
-  font-size: 11px;
-  color: var(--muted);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
   width: min(390px, 65%);
 }
 .selector select {
   width: 100%;
-  font-size: 15px;
-  color: var(--ink);
-  background: #fffefa;
-  border: 1px solid #d9dfd4;
-  border-radius: 13px;
-  padding: 12px;
-  min-height: 46px;
+  font-size: var(--text-md);
+  color: var(--text-primary);
+  background-color: var(--surface-card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 12px var(--select-chevron-space) 12px 12px;
+  min-height: var(--control-height);
 }
 .saveState {
-  font-size: 11px;
-  color: var(--muted);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
   padding-bottom: 12px;
 }
 .groups {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  overflow-x: auto;
-  padding: 16px 0 6px;
+  padding: 16px 0 8px;
 }
 .groups button {
   flex-shrink: 0;
-  min-height: 42px;
-  border: 1px solid var(--line);
+  min-height: var(--control-height-sm);
+  border: 1px solid var(--border-subtle);
   background: transparent;
-  border-radius: 24px;
-  color: var(--muted);
+  border-radius: var(--radius-pill);
+  color: var(--text-muted);
   padding: 10px 16px;
-  font-size: 12px;
+  font-size: var(--text-sm);
+}
+.groups button:hover:not([aria-pressed='true']) {
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+  background: var(--surface-card);
 }
 .groups button[aria-pressed='true'] {
-  background: var(--ink);
-  color: white;
-  border-color: var(--ink);
+  background: var(--text-primary);
+  color: var(--text-on-dark);
+  border-color: var(--text-primary);
 }
 .status {
   padding: 24px;
-  border: 1px solid var(--line);
-  border-radius: 18px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
   margin-bottom: 22px;
-  background: #fffefa;
+  background: var(--surface-card);
+  box-shadow: var(--shadow-card);
 }
 /* 共用编辑表单 */
 .form {
@@ -67,8 +73,8 @@
 .form label {
   display: grid;
   gap: 9px;
-  color: #475146;
-  font-size: 13px;
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
 }
 .form input,
 .form textarea,
@@ -76,20 +82,23 @@
   width: 100%;
   min-width: 0;
   font: inherit;
-  color: var(--ink);
-  border: 1px solid #d8ded3;
-  border-radius: 11px;
-  background: #fff;
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-field);
   padding: 12px;
-  min-height: 46px;
+  min-height: var(--control-height);
+}
+.form select {
+  padding-inline-end: var(--select-chevron-space);
 }
 .form textarea {
   resize: vertical;
   min-height: 104px;
 }
 .form small {
-  color: var(--muted);
-  font-size: 11px;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
 }
 .formActions {
   display: flex;
@@ -108,10 +117,10 @@
   align-items: center;
   gap: 9px;
   padding: 13px;
-  background: #f1f3ec;
-  border-radius: 12px;
-  color: var(--muted);
-  font-size: 11px;
+  background: var(--brand-050);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: var(--text-xs);
 }
 @media (max-width: 700px) {
   .selector {
@@ -124,7 +133,16 @@
   }
   .saveState {
     padding: 0;
-    font-size: 10px;
+    font-size: var(--text-xs);
+  }
+  /* 手机上日期筛选保持单行手势横滑，不显示滚动条 */
+  .groups {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .groups::-webkit-scrollbar {
+    display: none;
   }
   .form input,
   .form textarea,
@@ -135,8 +153,8 @@
 
 /* 坐标输入与来源选择 */
 .coordinates {
-  border: 1px solid var(--line);
-  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
   padding: 14px;
   display: grid;
   gap: 12px;
