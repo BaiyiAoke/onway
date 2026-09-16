@@ -1,17 +1,11 @@
-import {
-  ArrowRight,
-  ArrowUpRight,
-  CalendarDays,
-  MapPin,
-  NotebookPen,
-} from 'lucide-react'
+import { ArrowRight, ArrowUpRight, MapPin } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useTravel } from '../../services/travel/TravelContext'
 import { formatDayLabel, getTodayDayIndex } from '../../services/travel/model'
 import { TravelToolbar } from '../travel/TravelToolbar'
 import { NoteEditor } from './NoteEditor'
 import styles from './Today.module.css'
-import { DayRouteSummary } from '../routes/DayRouteSummary'
+import { DayRouteSummary, RouteAttribution } from '../routes/DayRouteSummary'
 import { AmapButton } from '../routes/AmapButton'
 
 export function TodayPage() {
@@ -25,15 +19,13 @@ export function TodayPage() {
     ? todayIndex === null
       ? '第 1 天预览'
       : `今天 · ${formatDayLabel(activeTrip, todayIndex)}`
-    : '从一个想去的地方开始'
+    : '行程安排'
 
   return (
     <div className="page">
       <div className="pageHeading">
         <div>
-          <p className="eyebrow">YOUR DAY, YOUR WAY</p>
-          <h1>今天，慢慢出发。</h1>
-          <p className="muted">想去的地方，和路上的小事，都收在这里。</p>
+          <h1>今天</h1>
         </div>
         <span className="tag">个人旅行 · 仅当前设备</span>
       </div>
@@ -43,19 +35,11 @@ export function TodayPage() {
           <span className={styles.heroTag}>
             {activeTrip
               ? todayIndex === null
-                ? '下一段旅程，从这里开始'
-                : '按自己的节奏，在途'
-              : '把想去的地方，慢慢连起来'}
+                ? '行程预览'
+                : '当前行程'
+              : '未创建行程'}
           </span>
-          <h2>
-            {activeTrip?.name ?? (
-              <>
-                沿着山脉，
-                <br />
-                向开阔处走。
-              </>
-            )}
-          </h2>
+          <h2>{activeTrip?.name ?? '尚未创建行程'}</h2>
           <p>
             {activeTrip
               ? activeTrip.startDate
@@ -77,7 +61,6 @@ export function TodayPage() {
           <div className={styles.ridgeBack} />
           <div className={styles.ridgeFront} />
           <div className={styles.road} />
-          <span className={styles.landscapeLabel}>ON YOUR WAY / 在途</span>
         </div>
       </section>
       {activeTrip && (
@@ -109,9 +92,6 @@ export function TodayPage() {
         <section className="card" aria-labelledby="today-places-title">
           <div className={styles.sectionHeading}>
             <div>
-              <p className="eyebrow">
-                {todayIndex === null ? '为旅途留一点期待' : '今天的沿途安排'}
-              </p>
               <h2 id="today-places-title">{dayHeading}</h2>
             </div>
             <MapPin size={20} className="muted" />
@@ -165,14 +145,7 @@ export function TodayPage() {
         </section>
         <NoteEditor />
       </div>
-      <div className={styles.bottomNotes}>
-        <span>
-          <CalendarDays size={17} /> 行程可以先规划，再确定出发日期。
-        </span>
-        <span>
-          <NotebookPen size={17} /> 无账号，数据保存在当前设备。
-        </span>
-      </div>
+      {activeTrip && displayedDay && <RouteAttribution />}
     </div>
   )
 }

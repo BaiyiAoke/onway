@@ -56,7 +56,6 @@ export function EditPanel({
     >
       <header className={styles.header}>
         <div>
-          <p className="eyebrow">ONWAY / 在途</p>
           <h2 id={titleId}>{title}</h2>
         </div>
         <button

@@ -14,7 +14,6 @@ export function MapRouteOverview() {
   if (selected) return <DayRouteSummary trip={trip} day={selected} editable />
   return (
     <div className={styles.overview} aria-label="每日路线图例">
-      <p>各天独立计算，路线不跨天连接。选择一天查看详情。</p>
       <div className={styles.legend}>
         {trip.days.map((day, index) => {
           const view = selectDayRoute(state, trip.id, day)

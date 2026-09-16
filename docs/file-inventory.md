@@ -213,3 +213,17 @@
 - `src/test/setup.ts`
 - `tsconfig.json`
 - `vite.config.ts`
+
+## v0.4 新增与主要改动
+
+- `src/features/places/`：PlacesPage、PlaceComposer、PointMap、CategoryManager、CopyActions、SearchPanel 与 CSS Modules。
+- `src/services/search/`：Nominatim、高德适配器、设备配置选择及测试。
+- `src/services/travel/coordinates.ts`、`library.test.ts`：坐标来源转换与迁移／副本隔离测试。
+- `src/services/travel/types.ts`、`model.ts`、`repository.ts`：工作区 v2、独立地点库、分类与显式迁移。
+- `src/features/travel/PlaceEditor.tsx`：库／行程共用编辑、分类与坐标表单，保留失败重试。
+- `src/app/App.tsx` 及 CSS：四个导航入口。
+- 地图／计划／今天／路线组件：新地点入口、收藏动作、精简文案及折叠详情。
+- `package.json`、锁文件、Capacitor 配置、Android app Gradle：gcoord 1.0.7、0.4.0 / code 4。
+- README、架构、Android 指南、`verification-v0.4.md`：新功能及实际验收。
+
+忽略目录中的 QA 脚本、截图、设备快照与 APK 不进入 Git。真实搜索 Key 未写入这些源码和文档。

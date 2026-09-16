@@ -1,3 +1,4 @@
+import { defaultCategories } from '../../services/travel/model'
 import { useState } from 'react'
 import {
   fireEvent,
@@ -32,7 +33,9 @@ beforeAll(() => {
 
 function fixture() {
   const workspace: TravelWorkspace = {
-    schemaVersion: 1,
+    schemaVersion: 2,
+    libraryPlaces: [],
+    categories: defaultCategories(),
     activeTripId: 'trip-personal',
     trips: [
       {

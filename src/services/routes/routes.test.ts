@@ -1,3 +1,4 @@
+import { defaultCategories } from '../travel/model'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { LocalStore } from '../storage/types'
 import { NOTE_KEY } from '../storage/types'
@@ -47,7 +48,9 @@ function day(): TripDay {
 }
 function workspace(): TravelWorkspace {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
+    libraryPlaces: [],
+    categories: defaultCategories(),
     activeTripId: 'trip',
     trips: [
       {

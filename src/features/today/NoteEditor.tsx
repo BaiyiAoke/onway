@@ -76,7 +76,6 @@ export function NoteEditor({
     <section className={`card ${styles.notes}`} aria-labelledby="note-title">
       <div className={styles.sectionHeading}>
         <div>
-          <p className="eyebrow">留给自己的提醒</p>
           <h2 id="note-title">个人备注</h2>
         </div>
         <span className="tag">仅当前设备</span>
@@ -112,7 +111,7 @@ export function NoteEditor({
                   ? '已保存到当前设备'
                   : note !== savedNote
                     ? '有尚未保存的修改'
-                    : '保存后，重新打开仍可查看。'}
+                    : '已保存'}
         </span>
         {status === 'loadError' ? (
           <button

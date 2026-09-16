@@ -111,7 +111,9 @@
     padding: 10px 20px calc(10px + var(--safe-bottom));
   }
   .navItem {
-    padding: 12px 21px;
+    padding: 12px 8px;
+    flex: 1;
+    min-width: 0;
   }
   .app {
     padding-bottom: calc(78px + var(--safe-bottom));

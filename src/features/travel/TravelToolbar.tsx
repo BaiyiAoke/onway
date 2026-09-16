@@ -50,7 +50,7 @@ export function TravelToolbar({ showGroups = true }: { showGroups?: boolean }) {
           </select>
         </label>
         <span className={styles.saveState} role="status">
-          {saving ? '正在保存…' : '仅保存在当前设备'}
+          {saving ? '正在保存…' : ''}
         </span>
       </div>
       {error && (

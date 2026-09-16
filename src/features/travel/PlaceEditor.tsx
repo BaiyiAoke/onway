@@ -2,65 +2,145 @@ import { useState, type FormEvent } from 'react'
 import { MapPin, Save, Trash2 } from 'lucide-react'
 import { EditPanel } from '../../components/EditPanel'
 import { useTravel } from '../../services/travel/TravelContext'
-import { formatDayLabel } from '../../services/travel/model'
+import { formatDayLabel, samePlace } from '../../services/travel/model'
 import type { Trip, TripPlace } from '../../services/travel/types'
+import {
+  parseCoordinates,
+  splitCoordinates,
+  type CoordinateSystem,
+} from '../../services/travel/coordinates'
 import styles from './Travel.module.css'
 import { TravelSaveFeedback } from './TravelSaveFeedback'
 
 export interface PlaceDraft extends TripPlace {
   dayId: string | null
 }
+
+export function newPlaceDraft(dayId: string | null = null): PlaceDraft {
+  return {
+    id: crypto.randomUUID(),
+    name: '',
+    note: '',
+    coordinates: { longitude: NaN, latitude: NaN, crs: 'WGS84' },
+    dayId,
+  }
+}
+
 export function PlaceEditor({
   trip,
   draft,
   onClose,
   onPickLocation,
 }: {
-  trip: Trip
+  trip?: Trip
   draft: PlaceDraft
   onClose: () => void
   onPickLocation?: (draft: PlaceDraft) => void
 }) {
-  const { saving, run } = useTravel()
+  const { workspace, saving, run } = useTravel()
   const [form, setForm] = useState<PlaceDraft>(() => ({
     ...draft,
     coordinates: { ...draft.coordinates },
   }))
+  const initialLng = Number.isFinite(draft.coordinates.longitude)
+    ? String(draft.coordinates.longitude)
+    : ''
+  const initialLat = Number.isFinite(draft.coordinates.latitude)
+    ? String(draft.coordinates.latitude)
+    : ''
+  const [longitude, setLongitude] = useState(initialLng)
+  const [latitude, setLatitude] = useState(initialLat)
+  const [system, setSystem] = useState<CoordinateSystem>('WGS84')
   const [error, setError] = useState('')
   const [deleting, setDeleting] = useState(false)
-  const originalDay = trip.days.find((day) =>
+  const [duplicate, setDuplicate] = useState(false)
+  const originalDay = trip?.days.find((day) =>
     day.places.some((place) => place.id === draft.id),
   )
-  const original =
-    originalDay?.places.find((place) => place.id === draft.id) ??
-    trip.unscheduledPlaces.find((place) => place.id === draft.id)
+  const original = trip
+    ? (originalDay?.places.find((place) => place.id === draft.id) ??
+      trip.unscheduledPlaces.find((place) => place.id === draft.id))
+    : workspace?.libraryPlaces.find((place) => place.id === draft.id)
   const baseline = original
     ? { ...original, dayId: originalDay?.id ?? null }
     : { ...draft, name: '', note: '' }
-  const dirty = JSON.stringify(form) !== JSON.stringify(baseline)
-  async function submit(event: FormEvent) {
+  const dirty =
+    JSON.stringify(form) !== JSON.stringify(baseline) ||
+    longitude !== initialLng ||
+    latitude !== initialLat ||
+    system !== 'WGS84'
+  function makeDraft(): PlaceDraft {
+    const coordinates = parseCoordinates(longitude, latitude, system)
+    const changed =
+      coordinates.longitude !== draft.coordinates.longitude ||
+      coordinates.latitude !== draft.coordinates.latitude
+    return {
+      ...form,
+      coordinates,
+      ...(changed
+        ? {
+            source: undefined,
+            sourceUrl: undefined,
+            address: form.address === draft.address ? undefined : form.address,
+          }
+        : {}),
+    }
+  }
+  async function submit(event: FormEvent, allowDuplicate = false) {
     event.preventDefault()
     if (!form.name.trim()) {
       setError('请填写地点名称。')
       return
     }
+    let value: PlaceDraft
+    try {
+      value = makeDraft()
+    } catch (reason) {
+      setError((reason as Error).message)
+      return
+    }
     setError('')
-    const { dayId, ...place } = form
+    const { dayId, ...place } = value
+    const normalized = {
+      ...place,
+      name: place.name.trim(),
+      note: place.note.trim(),
+      address: place.address?.trim(),
+    }
     if (
-      await run({
-        type: 'savePlace',
-        tripId: trip.id,
-        dayId,
-        place: { ...place, name: place.name.trim(), note: place.note.trim() },
-      })
+      !trip &&
+      !original &&
+      !allowDuplicate &&
+      workspace?.libraryPlaces.some((item) => samePlace(item, normalized))
+    ) {
+      setDuplicate(true)
+      return
+    }
+    const ok = await run(
+      trip
+        ? { type: 'savePlace', tripId: trip.id, dayId, place: normalized }
+        : { type: 'saveLibraryPlace', place: normalized, allowDuplicate },
     )
-      onClose()
+    if (ok) onClose()
     else setError('地点保存失败，输入已保留，请重试。')
   }
   async function remove() {
-    if (await run({ type: 'deletePlace', tripId: trip.id, placeId: draft.id }))
-      onClose()
+    const ok = await run(
+      trip
+        ? { type: 'deletePlace', tripId: trip.id, placeId: draft.id }
+        : { type: 'deleteLibraryPlace', placeId: draft.id },
+    )
+    if (ok) onClose()
     else setError('删除未保存，请重试。')
+  }
+  function pickLocation() {
+    let value = form
+    try {
+      value = makeDraft()
+    } catch {
+      /* 重新选点允许修正尚未填完的坐标。 */
+    }
+    onPickLocation?.(value)
   }
   return (
     <EditPanel
@@ -72,8 +152,16 @@ export function PlaceEditor({
       {(requestClose) =>
         deleting ? (
           <div>
-            <p>删除“{original?.name}”后，它会从此行程的地图和列表移除。</p>
-            {error && <TravelSaveFeedback message={error} tripId={trip.id} />}
+            <p>
+              {trip
+                ? '删除“' +
+                  original?.name +
+                  '”后，它会从此行程的地图和列表移除。'
+                : '从地点库删除“' +
+                  original?.name +
+                  '”，已有行程副本不受影响。'}
+            </p>
+            {error && <TravelSaveFeedback message={error} tripId={trip?.id} />}
             <div className={styles.formActions}>
               <button
                 className="secondaryButton"
@@ -110,57 +198,131 @@ export function PlaceEditor({
               />
             </label>
             <label>
+              分类
+              <select
+                disabled={saving}
+                value={form.categoryId ?? ''}
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    categoryId: event.target.value || undefined,
+                  })
+                }
+              >
+                <option value="">未分类</option>
+                {workspace?.categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              地址
+              <input
+                disabled={saving}
+                maxLength={300}
+                value={form.address ?? ''}
+                onChange={(event) =>
+                  setForm({ ...form, address: event.target.value })
+                }
+              />
+            </label>
+            <label>
               备注
               <textarea
                 disabled={saving}
                 rows={3}
                 value={form.note}
-                placeholder="入口、停车位置、想做的事…"
+                placeholder="入口、停车位置等"
                 onChange={(event) =>
                   setForm({ ...form, note: event.target.value })
                 }
               />
             </label>
-            <label>
-              安排到
-              <select
-                disabled={saving}
-                value={form.dayId ?? 'unscheduled'}
-                onChange={(event) =>
-                  setForm({
-                    ...form,
-                    dayId:
-                      event.target.value === 'unscheduled'
-                        ? null
-                        : event.target.value,
-                  })
-                }
-              >
-                <option value="unscheduled">未安排</option>
-                {trip.days.map((day, index) => (
-                  <option key={day.id} value={day.id}>
-                    {formatDayLabel(trip, index)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className={styles.position}>
-              <MapPin size={17} />
-              <span>
-                已选位置 · {form.coordinates.latitude.toFixed(5)},{' '}
-                {form.coordinates.longitude.toFixed(5)}
-              </span>
+            {trip && (
+              <label>
+                安排到
+                <select
+                  disabled={saving}
+                  value={form.dayId ?? 'unscheduled'}
+                  onChange={(event) =>
+                    setForm({
+                      ...form,
+                      dayId:
+                        event.target.value === 'unscheduled'
+                          ? null
+                          : event.target.value,
+                    })
+                  }
+                >
+                  <option value="unscheduled">未安排</option>
+                  {trip.days.map((day, index) => (
+                    <option key={day.id} value={day.id}>
+                      {formatDayLabel(trip, index)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <fieldset className={styles.coordinates} disabled={saving}>
+              <legend>位置</legend>
+              <label>
+                坐标来源
+                <select
+                  value={system}
+                  onChange={(event) =>
+                    setSystem(event.target.value as CoordinateSystem)
+                  }
+                >
+                  <option value="WGS84">GPS／OSM（WGS84）</option>
+                  <option value="GCJ02">高德（GCJ-02）</option>
+                </select>
+              </label>
+              <div className={styles.coordinateRow}>
+                <label>
+                  经度
+                  <input
+                    required
+                    inputMode="decimal"
+                    value={longitude}
+                    placeholder="103.8343"
+                    onChange={(event) => setLongitude(event.target.value)}
+                    onPaste={(event) => {
+                      const pair = splitCoordinates(
+                        event.clipboardData.getData('text'),
+                      )
+                      if (pair) {
+                        event.preventDefault()
+                        setLongitude(pair[0])
+                        setLatitude(pair[1])
+                      }
+                    }}
+                  />
+                </label>
+                <label>
+                  纬度
+                  <input
+                    required
+                    inputMode="decimal"
+                    value={latitude}
+                    placeholder="36.0611"
+                    onChange={(event) => setLatitude(event.target.value)}
+                  />
+                </label>
+              </div>
+              <small>可在经度框粘贴“经度,纬度”。</small>
               {onPickLocation && (
                 <button
                   type="button"
                   className="textButton"
-                  disabled={saving}
-                  onClick={() => onPickLocation(form)}
+                  onClick={pickLocation}
                 >
+                  <MapPin size={16} />
                   重新选点
                 </button>
               )}
-            </div>
+            </fieldset>
             {form.sourceUrl && (
               <a
                 className="textButton"
@@ -168,10 +330,23 @@ export function PlaceEditor({
                 target="_blank"
                 rel="noreferrer"
               >
-                示例坐标资料来源
+                地点资料来源
               </a>
             )}
-            {error && <TravelSaveFeedback message={error} tripId={trip.id} />}
+            {error && <TravelSaveFeedback message={error} tripId={trip?.id} />}
+            {duplicate && (
+              <div role="status">
+                <p>地点库已包含这个地点。</p>
+                <button
+                  type="button"
+                  className="secondaryButton"
+                  disabled={saving}
+                  onClick={(event) => void submit(event, true)}
+                >
+                  仍然保存一份
+                </button>
+              </div>
+            )}
             <div className={styles.formActions}>
               {original && (
                 <button

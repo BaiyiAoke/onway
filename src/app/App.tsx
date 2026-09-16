@@ -7,14 +7,7 @@ import {
   useLocation,
   useNavigate,
 } from 'react-router-dom'
-import {
-  ArrowUpRight,
-  Compass,
-  Map,
-  NotebookPen,
-  Route as RouteIcon,
-  Sun,
-} from 'lucide-react'
+import { Compass, Map, NotebookPen, Bookmark, Sun } from 'lucide-react'
 import { Capacitor } from '@capacitor/core'
 import { App as NativeApp } from '@capacitor/app'
 import { TodayPage } from '../features/today/TodayPage'
@@ -25,11 +18,13 @@ import { BackHandlerProvider, useBackRegistry } from '../components/BackHandler'
 import { TravelProvider } from '../services/travel/TravelContext'
 import { RoutesProvider } from '../services/routes/RoutesContext'
 
+const PlacesPage = lazy(() => import('../features/places/PlacesPage'))
 const MapPage = lazy(() => import('../features/map/MapPage'))
 const links = [
   { to: '/today', label: '今天', icon: Sun },
   { to: '/map', label: '地图', icon: Map },
   { to: '/plan', label: '计划', icon: NotebookPen },
+  { to: '/places', label: '地点', icon: Bookmark },
 ]
 
 export function App() {
@@ -146,7 +141,7 @@ function AppShell() {
           <Suspense
             fallback={
               <div className="loading" role="status">
-                正在打开地图…
+                正在打开页面…
               </div>
             }
           >
@@ -154,18 +149,14 @@ function AppShell() {
               <Route path="/today" element={<TodayPage />} />
               <Route path="/map" element={<MapPage />} />
               <Route path="/plan" element={<PlanPage />} />
+              <Route path="/places" element={<PlacesPage />} />
               <Route path="*" element={<Navigate to="/today" replace />} />
             </Routes>
           </Suspense>
         </ErrorBoundary>
       </main>
       <footer className={styles.footer}>
-        <span>
-          <RouteIcon size={14} /> 把计划装进口袋，把时间留给路上。
-        </span>
-        <span>
-          ONWAY · 0.3 <ArrowUpRight size={12} />
-        </span>
+        <span>Onway 0.4</span>
       </footer>
     </div>
   )

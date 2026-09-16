@@ -1,6 +1,6 @@
 {
   "name": "onway",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -27,6 +27,7 @@
     "@capacitor/app-launcher": "8.0.1",
     "@capacitor/core": "^8.5.1",
     "dexie": "^4.4.5",
+    "gcoord": "1.0.7",
     "lucide-react": "^1.43.0",
     "maplibre-gl": "^6.8.0",
     "react": "^19.2.8",

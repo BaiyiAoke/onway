@@ -1,3 +1,4 @@
+import { defaultCategories } from '../../services/travel/model'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
@@ -19,7 +20,9 @@ import { DayRouteSummary, RouteLeg } from './DayRouteSummary'
 
 function fixture() {
   const workspace: TravelWorkspace = {
-    schemaVersion: 1,
+    schemaVersion: 2,
+    libraryPlaces: [],
+    categories: defaultCategories(),
     activeTripId: 'trip',
     trips: [
       {
@@ -145,6 +148,8 @@ describe('路线摘要与编辑状态联动', () => {
     fireEvent.click(calculate)
     await screen.findByText('270.0 公里', { selector: 'strong' })
     expect(screen.getByText(/从 兰州/)).toHaveTextContent('约 3 小时')
+    expect(screen.getByText(/已保存在本机/)).not.toBeVisible()
+    fireEvent.click(screen.getByText('详情'))
     expect(screen.getByText(/已保存在本机/)).toBeVisible()
     expect(source.values.has(ROUTE_CACHE_KEY)).toBe(true)
     fireEvent.click(screen.getByRole('button', { name: '交换顺序' }))

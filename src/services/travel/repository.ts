@@ -1,6 +1,11 @@
 import { getLocalStore } from '../storage'
 import type { LocalStore } from '../storage/types'
-import { applyTravelAction, emptyWorkspace, isValidCalendarDate } from './model'
+import {
+  applyTravelAction,
+  emptyWorkspace,
+  isValidCalendarDate,
+  defaultCategories,
+} from './model'
 import type { TravelAction, TravelWorkspace } from './types'
 
 export const TRAVEL_WORKSPACE_KEY = 'travel.workspace'
@@ -17,7 +22,16 @@ function assertDocument(condition: unknown): asserts condition {
 // 文档版本与 SQLite / IndexedDB 表版本独立；后续迁移必须在此显式增加分支。
 export function migrateWorkspaceDocument(document: unknown): unknown {
   assertDocument(isObject(document))
-  if (document.schemaVersion !== 1) {
+  if (document.schemaVersion === 1) {
+    // 读取时仅内存迁移，下一次成功操作整体写入 v2，失败不改动旧原文。
+    return {
+      ...structuredClone(document),
+      schemaVersion: 2,
+      libraryPlaces: [],
+      categories: defaultCategories(),
+    }
+  }
+  if (document.schemaVersion !== 2) {
     throw new Error(
       '旅行数据版本暂不受支持，已保留原数据，请使用兼容版本打开。',
     )
@@ -36,7 +50,7 @@ export function parseWorkspace(raw: string | null): TravelWorkspace {
   const document = migrateWorkspaceDocument(parsed)
   assertDocument(
     isObject(document) &&
-      document.schemaVersion === 1 &&
+      document.schemaVersion === 2 &&
       Array.isArray(document.trips),
   )
   const identifiers = new Set<string>()
@@ -51,6 +65,43 @@ export function parseWorkspace(raw: string | null): TravelWorkspace {
     assertDocument(!identifiers.has(id))
     identifiers.add(id)
   }
+  assertDocument(
+    Array.isArray(document.categories) && Array.isArray(document.libraryPlaces),
+  )
+  const categoryIds = new Set<string>()
+  const categoryNames = new Set<string>()
+  for (const category of document.categories) {
+    assertDocument(isObject(category))
+    validId(category.id)
+    assertDocument(
+      typeof category.name === 'string' &&
+        category.name.trim().length > 0 &&
+        category.name.length <= 30 &&
+        category.name !== '未分类' &&
+        typeof category.builtin === 'boolean',
+    )
+    assertDocument(!categoryNames.has(category.name))
+    categoryNames.add(category.name)
+    categoryIds.add(category.id as string)
+  }
+  for (const builtin of defaultCategories()) {
+    assertDocument(
+      document.categories.some(
+        (c) =>
+          isObject(c) &&
+          c.id === builtin.id &&
+          c.name === builtin.name &&
+          c.builtin === true,
+      ),
+    )
+  }
+  assertDocument(
+    document.categories.every(
+      (c) =>
+        isObject(c) &&
+        (!c.builtin || defaultCategories().some((b) => b.id === c.id)),
+    ),
+  )
   const validPlaces = (places: unknown) => {
     assertDocument(Array.isArray(places))
     for (const place of places) {
@@ -75,6 +126,25 @@ export function parseWorkspace(raw: string | null): TravelWorkspace {
           point.latitude >= -90 &&
           point.latitude <= 90,
       )
+      if (place.address !== undefined)
+        assertDocument(typeof place.address === 'string')
+      if (place.categoryId !== undefined)
+        assertDocument(
+          typeof place.categoryId === 'string' &&
+            categoryIds.has(place.categoryId),
+        )
+      if (place.libraryPlaceId !== undefined)
+        assertDocument(
+          typeof place.libraryPlaceId === 'string' &&
+            place.libraryPlaceId.length > 0,
+        )
+      if (place.source !== undefined)
+        assertDocument(
+          isObject(place.source) &&
+            ['osm', 'amap'].includes(place.source.provider as string) &&
+            typeof place.source.id === 'string' &&
+            place.source.id.length > 0,
+        )
       if (place.sourceUrl !== undefined) {
         assertDocument(typeof place.sourceUrl === 'string')
         try {
@@ -86,6 +156,7 @@ export function parseWorkspace(raw: string | null): TravelWorkspace {
       }
     }
   }
+  validPlaces(document.libraryPlaces)
   for (const trip of document.trips) {
     assertDocument(isObject(trip))
     validId(trip.id)

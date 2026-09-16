@@ -7,18 +7,22 @@ import {
   MapPin,
   Pencil,
   Plus,
-  Route,
   Trash2,
 } from 'lucide-react'
 import { ConfirmDialog, EditPanel } from '../../components/EditPanel'
 import { useTravel } from '../../services/travel/TravelContext'
-import { formatDayLabel } from '../../services/travel/model'
+import { categoryName, formatDayLabel } from '../../services/travel/model'
 import type { TravelAction, Trip, TripPlace } from '../../services/travel/types'
 import { TravelToolbar } from '../travel/TravelToolbar'
 import { PlaceEditor, type PlaceDraft } from '../travel/PlaceEditor'
 import forms from '../travel/Travel.module.css'
 import styles from './Plan.module.css'
-import { DayRouteSummary, RouteLeg } from '../routes/DayRouteSummary'
+import { CollectPlaceButton } from '../places/CopyActions'
+import {
+  DayRouteSummary,
+  RouteLeg,
+  RouteAttribution,
+} from '../routes/DayRouteSummary'
 import { AmapButton } from '../routes/AmapButton'
 import { TravelSaveFeedback } from '../travel/TravelSaveFeedback'
 
@@ -159,9 +163,7 @@ export function PlanPage() {
       return (
         <div className={styles.emptyDay}>
           <MapPin size={20} />
-          <p>
-            {dayId ? '这一天还没有地点。' : '先收下想去的地方，之后再安排。'}
-          </p>
+          <p>{dayId ? '这一天还没有地点。' : '还没有未安排的地点。'}</p>
           <Link
             className="textButton"
             to="/map"
@@ -187,6 +189,12 @@ export function PlanPage() {
                 />
               )}
               <h3>{place.name}</h3>
+              {place.categoryId && (
+                <span className="tag">
+                  {categoryName(workspace, place.categoryId)}
+                </span>
+              )}
+              {place.address && <p>{place.address}</p>}
               {place.note && <p>{place.note}</p>}
               <div className={styles.placeLinks}>
                 <button
@@ -206,6 +214,7 @@ export function PlanPage() {
                   在地图查看
                 </Link>
                 <AmapButton place={place} />
+                <CollectPlaceButton tripId={trip.id} place={place} />
                 {place.sourceUrl && (
                   <a
                     className="textButton"
@@ -213,7 +222,7 @@ export function PlanPage() {
                     target="_blank"
                     rel="noreferrer"
                   >
-                    示例资料
+                    地点资料
                   </a>
                 )}
               </div>
@@ -295,9 +304,7 @@ export function PlanPage() {
     <div className="page">
       <div className="pageHeading">
         <div>
-          <p className="eyebrow">ROOM FOR DETOURS</p>
-          <h1>计划，留一点余地。</h1>
-          <p className="muted">先收下想去的地方，再安排每一天。</p>
+          <h1>计划</h1>
         </div>
         <button
           className="primaryButton"
@@ -312,7 +319,7 @@ export function PlanPage() {
       {status === 'ready' && !trip && (
         <section className={'card ' + styles.empty}>
           <CalendarDays size={38} strokeWidth={1.3} />
-          <h2>从一个想去的地方开始</h2>
+          <h2>还没有行程</h2>
           <p>可以先不定出发日期，把想去的地点放进“未安排”。</p>
           <div className={styles.actions}>
             <button
@@ -344,7 +351,6 @@ export function PlanPage() {
         <>
           <section className={'card ' + styles.intro}>
             <div>
-              <p className="eyebrow">MY JOURNEY</p>
               <h2>{trip.name}</h2>
               <p>
                 {trip.days.length} 天 ·{' '}
@@ -401,7 +407,6 @@ export function PlanPage() {
             <section className={'card ' + styles.daySection}>
               <div className={styles.dayHeading}>
                 <div>
-                  <p className="eyebrow">SAVE IT FOR LATER</p>
                   <h2>未安排地点</h2>
                 </div>
                 <span className="tag">
@@ -416,9 +421,6 @@ export function PlanPage() {
               <section className={'card ' + styles.daySection} key={day.id}>
                 <div className={styles.dayHeading}>
                   <div>
-                    <p className="eyebrow">
-                      DAY {String(index + 1).padStart(2, '0')}
-                    </p>
                     <h2>{formatDayLabel(trip, index)}</h2>
                   </div>
                   <button
@@ -447,12 +449,7 @@ export function PlanPage() {
               </section>
             ),
           )}
-          <aside className={styles.notice}>
-            <Route size={21} />
-            <p>
-              每天按已保存的地点顺序独立估算，不连接前一天终点。调整地点后，请手动重新计算。
-            </p>
-          </aside>
+          <RouteAttribution />
           <button
             className="textButton"
             disabled={saving}

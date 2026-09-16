@@ -5,12 +5,55 @@ import type {
   TravelWorkspace,
   Trip,
   TripPlace,
+  PlaceCategory,
 } from './types'
+
+export function defaultCategories(): PlaceCategory[] {
+  return [
+    ['sight', '景点'],
+    ['food', '餐饮'],
+    ['stay', '住宿'],
+    ['parking', '停车'],
+    ['transport', '交通'],
+  ].map(([id, name]) => ({ id: 'category-' + id, name, builtin: true }))
+}
+
+export function categoryName(
+  workspace: TravelWorkspace | null,
+  id?: string,
+): string {
+  return (
+    workspace?.categories.find((category) => category.id === id)?.name ??
+    '未分类'
+  )
+}
+
+// 来源 ID 优先；手动地点只比较名称与原始坐标，不合并可能不同的入口。
+export function samePlace(a: TripPlace, b: TripPlace): boolean {
+  if (
+    a.source &&
+    b.source &&
+    a.source.provider === b.source.provider &&
+    a.source.id === b.source.id
+  )
+    return true
+  return (
+    a.name.trim() === b.name.trim() &&
+    a.coordinates.longitude === b.coordinates.longitude &&
+    a.coordinates.latitude === b.coordinates.latitude
+  )
+}
 
 const DAY_MS = 86_400_000
 
 export function emptyWorkspace(): TravelWorkspace {
-  return { schemaVersion: 1, trips: [], activeTripId: null }
+  return {
+    schemaVersion: 2,
+    trips: [],
+    activeTripId: null,
+    libraryPlaces: [],
+    categories: defaultCategories(),
+  }
 }
 
 // 以 UTC 运算日历日期，避免夏令时和本地时区让相邻两天错位。
@@ -118,6 +161,59 @@ export function applyTravelAction(
   createId: () => string = () => crypto.randomUUID(),
 ): TravelWorkspace {
   const next = structuredClone(workspace)
+  if (action.type === 'saveCategory') {
+    const name = action.name.trim()
+    if (!name || name.length > 30 || name === '未分类')
+      throw new Error('分类名称须为 1～30 个字符，且不能使用“未分类”。')
+    if (next.categories.some((c) => c.id !== action.id && c.name === name))
+      throw new Error('已有同名分类。')
+    if (action.id) {
+      const category = next.categories.find((c) => c.id === action.id)
+      if (!category || category.builtin) throw new Error('只能修改自定义分类。')
+      category.name = name
+    } else next.categories.push({ id: createId(), name, builtin: false })
+    return next
+  }
+  if (action.type === 'deleteCategory') {
+    const category = next.categories.find((c) => c.id === action.id)
+    if (!category || category.builtin) throw new Error('只能删除自定义分类。')
+    next.categories = next.categories.filter((c) => c.id !== action.id)
+    // 分类与所有引用同一次写入；删除分类不会删除任何地点。
+    for (const place of [
+      ...next.libraryPlaces,
+      ...next.trips.flatMap((t) => getGroupPlaces(t, 'all')),
+    ]) {
+      if (place.categoryId === action.id) delete place.categoryId
+    }
+    return next
+  }
+  if (action.type === 'saveLibraryPlace') {
+    assertPlace(action.place)
+    if (next.trips.some((t) => locatePlace(t, action.place.id)))
+      throw new Error('行程地点不能直接覆盖地点库，请使用收藏。')
+    const place = {
+      ...structuredClone(action.place),
+      name: action.place.name.trim(),
+    }
+    const index = next.libraryPlaces.findIndex((p) => p.id === place.id)
+    if (
+      index < 0 &&
+      !action.allowDuplicate &&
+      next.libraryPlaces.some((p) => samePlace(p, place))
+    )
+      throw new Error('地点库中已有这个地点，请确认是否另存副本。')
+    if (index < 0) next.libraryPlaces.push(place)
+    else next.libraryPlaces[index] = place
+    return next
+  }
+  if (action.type === 'deleteLibraryPlace') {
+    if (!next.libraryPlaces.some((p) => p.id === action.placeId))
+      throw new Error('地点已不存在，请重新读取。')
+    next.libraryPlaces = next.libraryPlaces.filter(
+      (p) => p.id !== action.placeId,
+    )
+    return next
+  }
   if (action.type === 'createTrip') {
     assertName(action.name)
     assertDate(action.startDate)
@@ -153,6 +249,37 @@ export function applyTravelAction(
   const trip = next.trips.find((item) => item.id === action.tripId)
   if (!trip) throw new Error('行程已不存在，请重新加载。')
   switch (action.type) {
+    case 'collectPlace': {
+      const found = locatePlace(trip, action.placeId)
+      if (!found) throw new Error('地点已不存在。')
+      if (
+        !action.allowDuplicate &&
+        next.libraryPlaces.some((p) => samePlace(p, found.place))
+      )
+        throw new Error('地点库中已有这个地点。')
+      const copied = { ...structuredClone(found.place), id: createId() }
+      delete copied.libraryPlaceId
+      next.libraryPlaces.push(copied)
+      break
+    }
+    case 'copyToTrip': {
+      const place = next.libraryPlaces.find((p) => p.id === action.placeId)
+      if (!place) throw new Error('地点库中的地点已不存在。')
+      if (
+        !action.allowDuplicate &&
+        getGroupPlaces(trip, 'all').some(
+          (p) => p.libraryPlaceId === place.id || samePlace(p, place),
+        )
+      )
+        throw new Error('此行程中已有这个地点。')
+      // 独立副本；来源 ID 仅用于重复提醒，不建立可变对象引用。
+      targetPlaces(trip, action.dayId).push({
+        ...structuredClone(place),
+        id: createId(),
+        libraryPlaceId: place.id,
+      })
+      break
+    }
     case 'selectTrip':
       next.activeTripId = trip.id
       break

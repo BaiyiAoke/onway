@@ -16,6 +16,8 @@ import { useTravel } from '../../services/travel/TravelContext'
 import { formatDayLabel, getGroupPlaces } from '../../services/travel/model'
 import type { Trip, TripPlace } from '../../services/travel/types'
 import { PlaceEditor, type PlaceDraft } from '../travel/PlaceEditor'
+import { PlaceComposer } from '../places/PlaceComposer'
+import { SearchPanel } from '../places/SearchPanel'
 import { TravelToolbar } from '../travel/TravelToolbar'
 import styles from './Map.module.css'
 import { useRoutes } from '../../services/routes/RoutesContext'
@@ -71,6 +73,7 @@ export default function MapPage() {
   const [attempt, setAttempt] = useState(0)
   const [state, setState] = useState<MapState>('loading')
   const [interaction, setInteraction] = useState<Interaction>(null)
+  const [composer, setComposer] = useState<'manual' | 'search' | null>(null)
   const [interactionTripId, setInteractionTripId] = useState(activeTrip?.id)
   const focusedRequest = useRef('')
   const fittedTrip = useRef<string | undefined>(undefined)
@@ -80,6 +83,7 @@ export default function MapPage() {
   if (interactionTripId !== activeTrip?.id) {
     setInteractionTripId(activeTrip?.id)
     setInteraction(null)
+    setComposer(null)
   }
 
   const visiblePlaces = activeTrip ? getGroupPlaces(activeTrip, group) : []
@@ -194,7 +198,13 @@ export default function MapPage() {
     }
     const draft: PlaceDraft =
       interaction?.mode === 'picking'
-        ? { ...interaction.draft, coordinates, sourceUrl: undefined }
+        ? {
+            ...interaction.draft,
+            coordinates,
+            sourceUrl: undefined,
+            source: undefined,
+            address: undefined,
+          }
         : {
             id: crypto.randomUUID(),
             name: '',
@@ -387,6 +397,7 @@ export default function MapPage() {
       (place) => place.id === interaction.draft.id,
     )
     const { longitude, latitude } = interaction.draft.coordinates
+    if (!Number.isFinite(longitude) || !Number.isFinite(latitude)) return
     if (
       original?.coordinates.longitude === longitude &&
       original.coordinates.latitude === latitude
@@ -453,12 +464,11 @@ export default function MapPage() {
     <div className="page">
       <div className="pageHeading">
         <div>
-          <p className="eyebrow">A LITTLE PERSPECTIVE</p>
-          <h1>把远方，放在眼前。</h1>
+          <h1>地图</h1>
           <p className="muted">
             {activeTrip
               ? `${activeTrip.name} · 当前显示 ${visiblePlaces.length} 个地点`
-              : '先有一个想去的方向，再慢慢安排沿途。'}
+              : '未选择行程'}
           </p>
         </div>
         <span className="tag">在线底图</span>
@@ -474,7 +484,7 @@ export default function MapPage() {
         <div className={styles.emptyTrip}>
           <div>
             <strong>创建行程，开始在地图上选点</strong>
-            <p>地点会保存在当前设备，也可以先放进“未安排”。</p>
+            <p>也可以先到“地点”收藏，不必创建行程。</p>
           </div>
           <Link className="primaryButton" to="/plan">
             去创建行程
@@ -497,6 +507,36 @@ export default function MapPage() {
             <X size={16} />
             取消选点
           </button>
+        </div>
+      )}
+      {!picking && activeTrip && (
+        <SearchPanel
+          inline
+          onSelect={(place) => {
+            closePopup()
+            setInteraction({
+              mode: 'editing',
+              draft: {
+                ...place,
+                id: crypto.randomUUID(),
+                dayId:
+                  group === 'all' || group === 'unscheduled' ? null : group,
+              },
+            })
+          }}
+        />
+      )}
+      {!picking && activeTrip && (
+        <div className={styles.addActions}>
+          <button
+            className="secondaryButton"
+            onClick={() => setComposer('manual')}
+          >
+            输入坐标
+          </button>
+          <Link className="textButton" to="/places">
+            从地点库添加
+          </Link>
         </div>
       )}
       {!picking && group === 'all' && <MapRouteOverview />}
@@ -541,7 +581,6 @@ export default function MapPage() {
         </section>
         <aside className={`card ${styles.places}`}>
           {!picking && group !== 'all' && <MapRouteOverview />}
-          <p className="eyebrow">地图上的小小路标</p>
           <h2>
             沿途地点 <span>{visiblePlaces.length}</span>
           </h2>
@@ -586,12 +625,18 @@ export default function MapPage() {
               ))}
             </ol>
           )}
-          <p className={styles.note}>
-            地点和已保存的路线估算可离线查看；底图与重新计算需要联网。路线变化后请重新计算。
-          </p>
-          {visibleRoutes.length > 0 && group === 'all' && <RouteAttribution />}
+          {activeTrip && <RouteAttribution />}
         </aside>
       </div>
+      {activeTrip && composer && (
+        <PlaceComposer
+          key={activeTrip.id}
+          mode={composer}
+          trip={activeTrip}
+          dayId={group === 'all' || group === 'unscheduled' ? null : group}
+          onClose={() => setComposer(null)}
+        />
+      )}
       {activeTrip && interaction?.mode === 'editing' && (
         <PlaceEditor
           key={interaction.draft.id}

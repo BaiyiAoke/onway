@@ -142,27 +142,30 @@ export function DayRouteSummary({
           )}
         </div>
       )}
-      {result && (
-        <>
-          <p className={styles.hint}>
-            {view.unsaved
-              ? '尚未保存到本机'
-              : view.operation?.stage === 'error'
-                ? '显示上次保存的估算'
-                : '已保存在本机'}
-            {' · '}
-            {new Date(result.calculatedAt).toLocaleString('zh-CN', {
-              hour12: false,
-            })}
-          </p>
-          <p className={styles.hint}>驾驶估算，不含停留时间和实时路况。</p>
-          <RouteAttribution />
-        </>
+      {result && view.unsaved && <p className={styles.hint}>尚未保存到本机</p>}
+      {result && view.operation?.stage === 'error' && (
+        <p className={styles.hint}>显示上次保存的估算</p>
       )}
-      {editable && enough && (
-        <p className={styles.disclosure}>
-          点击计算会将当天地点坐标发送给 FOSSGIS 路线服务；名称和备注留在本机。
-        </p>
+      {(result || (editable && enough)) && (
+        <details className={styles.details}>
+          <summary>详情</summary>
+          {result && !view.unsaved && (
+            <p className={styles.hint}>
+              已保存在本机 ·{' '}
+              {new Date(result.calculatedAt).toLocaleString('zh-CN', {
+                hour12: false,
+              })}
+            </p>
+          )}
+          <p className={styles.hint}>
+            驾驶估算，不含停留时间和实时路况。各天独立计算。
+          </p>
+          {editable && enough && (
+            <p className={styles.disclosure}>
+              计算会将当天地点坐标发送给 FOSSGIS 路线服务；名称和备注留在本机。
+            </p>
+          )}
+        </details>
       )}
     </section>
   )

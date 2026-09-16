@@ -132,3 +132,21 @@
     font-size: 16px;
   }
 }
+
+/* 坐标输入与来源选择 */
+.coordinates {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.coordinates legend {
+  padding: 0 6px;
+}
+.coordinateRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}

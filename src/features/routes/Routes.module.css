@@ -126,3 +126,15 @@
     min-height: 42px;
   }
 }
+
+/* 次要路线说明按需展开 */
+.details {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.details summary {
+  cursor: pointer;
+  width: fit-content;
+  padding: 5px 0;
+}

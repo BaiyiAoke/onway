@@ -272,3 +272,12 @@
 .popup .navigationMessage[role='alert'] {
   color: #a04e44;
 }
+
+/* 地点添加入口 */
+.addActions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}

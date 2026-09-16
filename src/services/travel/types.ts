@@ -5,6 +5,10 @@ export interface TripPlace {
   name: string
   note: string
   coordinates: Wgs84Point
+  address?: string
+  categoryId?: string
+  source?: { provider: 'osm' | 'amap'; id: string }
+  libraryPlaceId?: string
   sourceUrl?: string
 }
 
@@ -21,8 +25,16 @@ export interface Trip {
   unscheduledPlaces: TripPlace[]
 }
 
+export interface PlaceCategory {
+  id: string
+  name: string
+  builtin: boolean
+}
+
 export interface TravelWorkspace {
-  schemaVersion: 1
+  schemaVersion: 2
+  libraryPlaces: TripPlace[]
+  categories: PlaceCategory[]
   trips: Trip[]
   activeTripId: string | null
 }
@@ -30,6 +42,23 @@ export interface TravelWorkspace {
 export type PlaceGroup = 'all' | 'unscheduled' | string
 
 export type TravelAction =
+  | { type: 'saveLibraryPlace'; place: TripPlace; allowDuplicate?: boolean }
+  | { type: 'deleteLibraryPlace'; placeId: string }
+  | {
+      type: 'copyToTrip'
+      placeId: string
+      tripId: string
+      dayId: string | null
+      allowDuplicate?: boolean
+    }
+  | {
+      type: 'collectPlace'
+      tripId: string
+      placeId: string
+      allowDuplicate?: boolean
+    }
+  | { type: 'saveCategory'; id?: string; name: string }
+  | { type: 'deleteCategory'; id: string }
   | {
       type: 'createTrip'
       name: string
