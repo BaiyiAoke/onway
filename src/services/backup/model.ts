@@ -1,3 +1,4 @@
+import { cleanTransport } from '../routes/transportValidation'
 import { parseWorkspace } from '../travel/repository'
 import type { TravelWorkspace, TripPlace } from '../travel/types'
 export const MAX_BACKUP_BYTES = 20 * 1024 * 1024
@@ -21,6 +22,9 @@ function cleanPlace(p: TripPlace): TripPlace {
       crs: 'WGS84',
     },
     address: p.address,
+    citycode: p.citycode,
+    adcode: p.adcode,
+    cityName: p.cityName,
     categoryId: p.categoryId,
     libraryPlaceId: p.libraryPlaceId,
     source: p.source && { provider: p.source.provider, id: p.source.id },
@@ -29,7 +33,7 @@ function cleanPlace(p: TripPlace): TripPlace {
 }
 export function cleanWorkspace(w: TravelWorkspace): TravelWorkspace {
   return {
-    schemaVersion: 2,
+    schemaVersion: 4,
     activeTripId: w.activeTripId,
     categories: w.categories.map((c) => ({
       id: c.id,
@@ -43,6 +47,7 @@ export function cleanWorkspace(w: TravelWorkspace): TravelWorkspace {
       startDate: t.startDate,
       days: t.days.map((d) => ({ id: d.id, places: d.places.map(cleanPlace) })),
       unscheduledPlaces: t.unscheduledPlaces.map(cleanPlace),
+      transport: t.transport?.map(cleanTransport),
     })),
   }
 }
@@ -53,7 +58,7 @@ export function createBackup(
   return {
     app: 'onway',
     formatVersion: 1,
-    appVersion: '0.5.1',
+    appVersion: '0.6.0',
     exportedAt: new Date().toISOString(),
     workspace: cleanWorkspace(workspace),
     personalNote,

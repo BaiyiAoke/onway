@@ -1,4 +1,5 @@
 import { demoPlaces } from '../../data/demo'
+import { pointSignature, reconcileTransport } from '../routes/transport'
 import type {
   PlaceGroup,
   TravelAction,
@@ -14,7 +15,8 @@ export function defaultCategories(): PlaceCategory[] {
     ['food', '餐饮'],
     ['stay', '住宿'],
     ['parking', '停车'],
-    ['transport', '交通'],
+    ['airport', '机场'],
+    ['station', '车站'],
   ].map(([id, name]) => ({ id: 'category-' + id, name, builtin: true }))
 }
 
@@ -22,10 +24,11 @@ export function categoryName(
   workspace: TravelWorkspace | null,
   id?: string,
 ): string {
-  return (
-    workspace?.categories.find((category) => category.id === id)?.name ??
-    '未分类'
-  )
+  const category = workspace?.categories.find((item) => item.id === id)
+  // 旧交通分类保留原 ID；显示待整理，不根据名称推断机场或车站。
+  if (category?.builtin && category.id === 'category-transport')
+    return '交通（待整理）'
+  return category?.name ?? '未分类'
 }
 
 // 来源 ID 优先；手动地点只比较名称与原始坐标，不合并可能不同的入口。
@@ -48,7 +51,7 @@ const DAY_MS = 86_400_000
 
 export function emptyWorkspace(): TravelWorkspace {
   return {
-    schemaVersion: 2,
+    schemaVersion: 4,
     trips: [],
     activeTripId: null,
     libraryPlaces: [],
@@ -124,6 +127,22 @@ function targetPlaces(trip: Trip, dayId: string | null): TripPlace[] {
   const day = trip.days.find((item) => item.id === dayId)
   if (!day) throw new Error('这一天已不存在，请重新选择。')
   return day.places
+}
+
+// 插入目标必须仍在选定当天；失效时提示重新选择，避免悄悄追加到错误位置。
+function insertPlace(
+  places: TripPlace[],
+  place: TripPlace,
+  afterPlaceId?: string,
+) {
+  if (afterPlaceId === undefined) {
+    places.push(place)
+    return
+  }
+  const index = places.findIndex((item) => item.id === afterPlaceId)
+  if (index < 0)
+    throw new Error('插入位置已改变，请重新选择要在哪个地点后添加。')
+  places.splice(index + 1, 0, place)
 }
 
 function locatePlace(trip: Trip, id: string) {
@@ -202,6 +221,14 @@ export function applyTravelAction(
       next.libraryPlaces.some((p) => samePlace(p, place))
     )
       throw new Error('地点库中已有这个地点，请确认是否另存副本。')
+    if (
+      index >= 0 &&
+      pointSignature(next.libraryPlaces[index]) !== pointSignature(place)
+    ) {
+      delete place.citycode
+      delete place.adcode
+      delete place.cityName
+    }
     if (index < 0) next.libraryPlaces.push(place)
     else next.libraryPlaces[index] = place
     return next
@@ -249,6 +276,56 @@ export function applyTravelAction(
   const trip = next.trips.find((item) => item.id === action.tripId)
   if (!trip) throw new Error('行程已不存在，请重新加载。')
   switch (action.type) {
+    case 'savePlaceCity': {
+      const found = locatePlace(trip, action.placeId)
+      if (
+        !found ||
+        JSON.stringify(found.place.coordinates) !==
+          JSON.stringify(action.coordinates)
+      )
+        throw new Error('地点位置已改变，城市信息未保存。')
+      Object.assign(found.place, action.city)
+      break
+    }
+    case 'saveTransport': {
+      const record = structuredClone(action.record)
+      const records = (trip.transport ??= [])
+      const existing = records.find((r) => r.id === record.id)
+      if (
+        action.expected !== undefined &&
+        JSON.stringify(existing ?? null) !== action.expected
+      )
+        throw new Error('交通记录已更新，请重新打开后编辑。')
+      if (record.dayId !== null) {
+        const day = trip.days.find((d) => d.id === record.dayId)
+        const index =
+          day?.places.findIndex((p) => p.id === record.from.id) ?? -1
+        if (
+          !day ||
+          index < 0 ||
+          day.places[index + 1]?.id !== record.to.id ||
+          pointSignature(record.from) !== pointSignature(day.places[index]) ||
+          pointSignature(record.to) !== pointSignature(day.places[index + 1])
+        )
+          throw new Error('相邻地点已改变，请重新打开交通设置。')
+        if (
+          records.some(
+            (r) =>
+              r.id !== record.id &&
+              r.dayId === record.dayId &&
+              r.from.id === record.from.id &&
+              r.to.id === record.to.id,
+          )
+        )
+          throw new Error('目标路段已有交通设置，请先处理该记录。')
+      }
+      if (existing) records.splice(records.indexOf(existing), 1, record)
+      else records.push(record)
+      break
+    }
+    case 'deleteTransport':
+      trip.transport = trip.transport?.filter((r) => r.id !== action.recordId)
+      break
     case 'collectPlace': {
       const found = locatePlace(trip, action.placeId)
       if (!found) throw new Error('地点已不存在。')
@@ -273,11 +350,15 @@ export function applyTravelAction(
       )
         throw new Error('此行程中已有这个地点。')
       // 独立副本；来源 ID 仅用于重复提醒，不建立可变对象引用。
-      targetPlaces(trip, action.dayId).push({
-        ...structuredClone(place),
-        id: createId(),
-        libraryPlaceId: place.id,
-      })
+      insertPlace(
+        targetPlaces(trip, action.dayId),
+        {
+          ...structuredClone(place),
+          id: createId(),
+          libraryPlaceId: place.id,
+        },
+        action.afterPlaceId,
+      )
       break
     }
     case 'selectTrip':
@@ -320,11 +401,18 @@ export function applyTravelAction(
         ...structuredClone(action.place),
         name: action.place.name.trim(),
       }
+      if (found && pointSignature(found.place) !== pointSignature(place)) {
+        delete place.citycode
+        delete place.adcode
+        delete place.cityName
+      }
       if (found?.places === destination) {
         destination[found.index] = place
       } else {
-        if (found) found.places.splice(found.index, 1)
-        destination.push(place)
+        if (found) {
+          found.places.splice(found.index, 1)
+          destination.push(place)
+        } else insertPlace(destination, place, action.afterPlaceId)
       }
       break
     }
@@ -347,17 +435,22 @@ export function applyTravelAction(
     case 'reorderPlace': {
       const found = locatePlace(trip, action.placeId)
       if (!found) throw new Error('地点已不存在，请重新加载。')
-      if (action.direction !== -1 && action.direction !== 1)
-        throw new Error('排序方向无效。')
-      const destination = found.index + action.direction
+      const destination =
+        action.direction === 'top'
+          ? 0
+          : action.direction === 'bottom'
+            ? found.places.length - 1
+            : found.index + action.direction
       if (destination >= 0 && destination < found.places.length) {
-        ;[found.places[found.index], found.places[destination]] = [
-          found.places[destination],
-          found.place,
-        ]
+        const [place] = found.places.splice(found.index, 1)
+        found.places.splice(destination, 0, place)
       }
       break
     }
   }
+  reconcileTransport(
+    trip,
+    workspace.trips.find((t) => t.id === trip.id),
+  )
   return next
 }

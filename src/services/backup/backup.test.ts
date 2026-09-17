@@ -4,7 +4,11 @@ import { WebLocalStore } from '../storage/web'
 import { NOTE_KEY } from '../storage/types'
 import { RESTORE_EPOCH_KEY } from '../storage/atomic'
 import { TravelRepository, TRAVEL_WORKSPACE_KEY } from '../travel/repository'
-import { emptyWorkspace, applyTravelAction } from '../travel/model'
+import {
+  defaultCategories,
+  emptyWorkspace,
+  applyTravelAction,
+} from '../travel/model'
 import { ROUTE_CACHE_KEY, RouteCacheRepository } from '../routes/repository'
 import { BackupRepository } from './repository'
 import {
@@ -134,9 +138,54 @@ describe('文件备份与事务恢复', () => {
       workspace: { schemaVersion: 1, trips: [], activeTripId: null },
     }
     const next = parseBackup('\uFEFF' + JSON.stringify(old))
-    expect(next.workspace.schemaVersion).toBe(2)
-    expect(next.workspace.categories).toHaveLength(5)
+    expect(next.workspace.schemaVersion).toBe(4)
+    expect(next.workspace.categories).toHaveLength(7)
   })
+  it.each([2, 3, 4])(
+    '外层 v1 备份可导入旅行文档 v%s，新旧分类往返不丢引用',
+    (schemaVersion) => {
+      const source = fixture()
+      const categories =
+        schemaVersion === 4
+          ? defaultCategories()
+          : [
+              ...defaultCategories().filter(
+                (category) =>
+                  !['category-airport', 'category-station'].includes(
+                    category.id,
+                  ),
+              ),
+              { id: 'category-transport', name: '交通', builtin: true },
+              { id: 'custom-airport', name: '机场', builtin: false },
+            ]
+      const categoryId =
+        schemaVersion === 4 ? 'category-airport' : 'category-transport'
+      const workspace = {
+        ...source.workspace,
+        schemaVersion,
+        categories,
+        libraryPlaces: [{ ...source.workspace.libraryPlaces[0], categoryId }],
+        trips: source.workspace.trips.map((trip) => ({
+          ...trip,
+          days: trip.days.map((day) => ({
+            ...day,
+            places: day.places.map((place) => ({ ...place, categoryId })),
+          })),
+        })),
+      }
+      const restored = parseBackup(JSON.stringify({ ...source, workspace }))
+      expect(restored.formatVersion).toBe(1)
+      expect(restored.workspace.schemaVersion).toBe(4)
+      expect(restored.workspace.libraryPlaces[0].categoryId).toBe(categoryId)
+      expect(restored.workspace.trips[0].days[1].places[0].categoryId).toBe(
+        categoryId,
+      )
+      expect(
+        parseBackup(serializeBackup(createBackup(restored.workspace, '备注')))
+          .workspace,
+      ).toEqual(restored.workspace)
+    },
+  )
   it('事务第二项失败时已写的第一项也回滚，重试可成功', async () => {
     const store = open(),
       repository = new BackupRepository(store)

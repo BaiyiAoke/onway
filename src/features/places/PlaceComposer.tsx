@@ -15,17 +15,20 @@ export function PlaceComposer({
   initial,
   trip,
   dayId = null,
+  afterPlaceId,
   onClose,
 }: {
   mode: 'manual' | 'search' | 'map'
   initial?: PlaceDraft
   trip?: Trip
   dayId?: string | null
+  afterPlaceId?: string
   onClose: () => void
 }) {
   const [draft, setDraft] = useState<PlaceDraft | null>(() =>
     mode === 'manual' ? (initial ?? newPlaceDraft(dayId)) : null,
   )
+  const [insertAfter, setInsertAfter] = useState(afterPlaceId)
   const [picking, setPicking] = useState(mode === 'map')
   const [revision, setRevision] = useState(0)
   const points =
@@ -67,6 +70,9 @@ export function PlaceComposer({
                   ...(draft ?? newPlaceDraft(dayId)),
                   coordinates,
                   source: undefined,
+                  citycode: undefined,
+                  adcode: undefined,
+                  cityName: undefined,
                   sourceUrl: undefined,
                   address: undefined,
                 }
@@ -92,6 +98,10 @@ export function PlaceComposer({
             key={draft.id + ':' + revision}
             trip={trip}
             draft={draft}
+            afterPlaceId={insertAfter}
+            onSaved={(placeId, savedDayId) => {
+              if (afterPlaceId && savedDayId === dayId) setInsertAfter(placeId)
+            }}
             onClose={closeEditor}
             onPickLocation={(value) => {
               setDraft(value)

@@ -33,7 +33,7 @@ beforeAll(() => {
 
 function fixture() {
   const workspace: TravelWorkspace = {
-    schemaVersion: 2,
+    schemaVersion: 4,
     libraryPlaces: [],
     categories: defaultCategories(),
     activeTripId: 'trip-personal',

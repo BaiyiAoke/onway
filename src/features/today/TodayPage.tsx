@@ -1,11 +1,16 @@
+import { useState } from 'react'
 import { ArrowRight, ArrowUpRight, MapPin } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { GuardedLink } from '../../components/GuardedNavigation'
 import { useTravel } from '../../services/travel/TravelContext'
 import { formatDayLabel, getTodayDayIndex } from '../../services/travel/model'
 import { TravelToolbar } from '../travel/TravelToolbar'
 import { NoteEditor } from './NoteEditor'
 import styles from './Today.module.css'
-import { DayRouteSummary, RouteAttribution } from '../routes/DayRouteSummary'
+import {
+  DayRouteSummary,
+  RouteAttribution,
+  RouteLeg,
+} from '../routes/DayRouteSummary'
 import { AmapButton } from '../routes/AmapButton'
 
 export function TodayPage() {
@@ -15,6 +20,19 @@ export function TodayPage() {
     activeTrip?.days.reduce((total, day) => total + day.places.length, 0) ?? 0
   // 日期未确定或不在行程期间时，仅预览首日，避免把未来安排显示成今天。
   const displayedDay = activeTrip?.days[todayIndex ?? 0]
+  const previewKey = JSON.stringify([
+    activeTrip?.id,
+    displayedDay?.id,
+    activeTrip?.startDate,
+  ])
+  const [preview, setPreview] = useState({ key: previewKey, expanded: false })
+  // 展开仅属于当前行程当天，切换目标后不把上一天的长清单带过来。
+  if (preview.key !== previewKey)
+    setPreview({ key: previewKey, expanded: false })
+  const expanded = preview.key === previewKey && preview.expanded
+  const visiblePlaces = expanded
+    ? displayedDay?.places
+    : displayedDay?.places.slice(0, 3)
   const dayHeading = activeTrip
     ? todayIndex === null
       ? '第 1 天预览'
@@ -23,13 +41,8 @@ export function TodayPage() {
 
   return (
     <div className="page">
-      <div className="pageHeading">
-        <div>
-          <h1>今天</h1>
-        </div>
-        <span className="tag">个人旅行 · 仅当前设备</span>
-      </div>
-      <TravelToolbar showGroups={false} />
+      <h1 className="srOnly">行程总览</h1>
+      <TravelToolbar showGroups={false} compact />
       <section className={styles.hero}>
         <div className={styles.heroContent}>
           <span className={styles.heroTag}>
@@ -47,14 +60,14 @@ export function TodayPage() {
                 : `出发日期未定 · 共 ${activeTrip.days.length} 天`
               : '先创建行程，再把地点放进每一天。'}
           </p>
-          <Link
+          <GuardedLink
             to={activeTrip ? '/map' : '/plan'}
             className={styles.heroLink}
-            onClick={() => setGroup('all')}
+            onNavigate={() => setGroup('all')}
           >
             {activeTrip ? '打开旅行地图' : '开始规划行程'}{' '}
             <ArrowUpRight size={18} />
-          </Link>
+          </GuardedLink>
         </div>
         <div className={styles.landscape} aria-hidden="true">
           <div className={styles.sun} />
@@ -104,28 +117,42 @@ export function TodayPage() {
             </p>
           )}
           {activeTrip && displayedDay && (
-            <DayRouteSummary trip={activeTrip} day={displayedDay} />
+            <DayRouteSummary
+              trip={activeTrip}
+              day={displayedDay}
+              density="compact"
+            />
           )}
           {displayedDay && displayedDay.places.length > 0 ? (
-            <ol className={styles.placeList}>
-              {displayedDay.places.map((place, index) => (
+            <ol id="preview-places" className={styles.placeList}>
+              {visiblePlaces?.map((place, index) => (
                 <li key={place.id}>
-                  <Link
-                    to={`/map?place=${encodeURIComponent(place.id)}`}
-                    className={styles.placeLink}
-                    onClick={() => setGroup('all')}
-                    aria-label={`在地图查看${place.name}`}
-                  >
-                    <span className={styles.number}>
-                      {String(index + 1).padStart(2, '0')}
-                    </span>
-                    <div>
-                      <h3>{place.name}</h3>
-                      <p>{place.note || '在地图上查看这个地点'}</p>
-                    </div>
-                    <ArrowUpRight size={17} className="muted" />
-                  </Link>
-                  <AmapButton place={place} />
+                  <div className={styles.placeRow}>
+                    <GuardedLink
+                      to={`/map?place=${encodeURIComponent(place.id)}`}
+                      className={styles.placeLink}
+                      onNavigate={() => setGroup('all')}
+                      aria-label={`在地图查看${place.name}`}
+                    >
+                      <span className={styles.number}>
+                        {String(index + 1).padStart(2, '0')}
+                      </span>
+                      <div>
+                        <h3>{place.name}</h3>
+                        {place.note && <p>{place.note}</p>}
+                      </div>
+                      <ArrowUpRight size={17} className="muted" />
+                    </GuardedLink>
+                    <AmapButton place={place} />
+                  </div>
+                  {index < (visiblePlaces?.length ?? 0) - 1 && activeTrip && (
+                    <RouteLeg
+                      tripId={activeTrip.id}
+                      day={displayedDay}
+                      toIndex={index + 1}
+                      variant="compact"
+                    />
+                  )}
                 </li>
               ))}
             </ol>
@@ -138,10 +165,32 @@ export function TodayPage() {
                   : '行程加载状态请查看上方提示；个人备注仍可独立使用。'}
             </p>
           )}
-          <Link className={styles.textLink} to="/plan">
-            {activeTrip ? '查看完整计划' : '前往计划页创建行程'}{' '}
-            <ArrowRight size={16} />
-          </Link>
+          <div className={styles.previewActions}>
+            {displayedDay && displayedDay.places.length > 3 && (
+              <button
+                className={styles.expandPreview}
+                aria-expanded={expanded}
+                aria-controls="preview-places"
+                onClick={() =>
+                  setPreview({ key: previewKey, expanded: !expanded })
+                }
+              >
+                {expanded
+                  ? '收起'
+                  : '展开全部 ' + displayedDay.places.length + ' 个地点'}
+              </button>
+            )}
+            <GuardedLink
+              className={styles.textLink}
+              to="/plan"
+              onNavigate={() => {
+                if (displayedDay) setGroup(displayedDay.id)
+              }}
+            >
+              {activeTrip ? '查看完整计划' : '前往计划页创建行程'}{' '}
+              <ArrowRight size={16} />
+            </GuardedLink>
+          </div>
         </section>
         <NoteEditor />
       </div>

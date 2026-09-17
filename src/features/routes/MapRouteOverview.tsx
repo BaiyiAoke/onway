@@ -1,5 +1,5 @@
 import { useRoutes } from '../../services/routes/RoutesContext'
-import { selectDayRoute } from '../../services/routes/view'
+import { dayTransport } from '../../services/routes/segmentView'
 import { ROUTE_COLORS } from '../../services/routes/model'
 import { useTravel } from '../../services/travel/TravelContext'
 import { formatDayLabel } from '../../services/travel/model'
@@ -8,15 +8,24 @@ import styles from './Routes.module.css'
 
 export function MapRouteOverview() {
   const { activeTrip: trip, group, setGroup } = useTravel()
-  const { state } = useRoutes()
+  const { state, segments } = useRoutes()
   if (!trip || group === 'unscheduled') return null
   const selected = trip.days.find((day) => day.id === group)
-  if (selected) return <DayRouteSummary trip={trip} day={selected} editable />
+  if (selected)
+    return (
+      <DayRouteSummary trip={trip} day={selected} editable density="compact" />
+    )
   return (
     <div className={styles.overview} aria-label="每日路线图例">
       <div className={styles.legend}>
         {trip.days.map((day, index) => {
-          const view = selectDayRoute(state, trip.id, day)
+          const summary = dayTransport(segments, state, trip, day)
+          const view = {
+            entry: summary.completed > 0 || !!summary.legacyEntry,
+            unsaved: summary.views.some((v) => v.unsaved),
+            busy: summary.views.some((v) => v.busy),
+            stale: summary.views.some((v) => v.needsReview),
+          }
           return (
             <button
               key={day.id}

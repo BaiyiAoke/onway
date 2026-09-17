@@ -6,22 +6,30 @@ import {
   useRef,
   useState,
 } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from 'react-router-dom'
 import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import mapWorkerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url'
-import { Expand, MapPin, Pencil, RefreshCw, X } from 'lucide-react'
+import { ArrowLeft, Expand, MapPin, Pencil, RefreshCw, X } from 'lucide-react'
 import { useBackHandler } from '../../components/BackHandler'
+import { GuardedLink } from '../../components/GuardedNavigation'
+import { readPlanReturn } from '../travel/planReturn'
 import { useTravel } from '../../services/travel/TravelContext'
 import { formatDayLabel, getGroupPlaces } from '../../services/travel/model'
 import type { Trip, TripPlace } from '../../services/travel/types'
 import { PlaceEditor, type PlaceDraft } from '../travel/PlaceEditor'
 import { PlaceComposer } from '../places/PlaceComposer'
+import { LibraryPicker } from '../places/LibraryPicker'
 import { SearchPanel } from '../places/SearchPanel'
 import { TravelToolbar } from '../travel/TravelToolbar'
 import styles from './Map.module.css'
 import { useRoutes } from '../../services/routes/RoutesContext'
-import { visibleDayRoutes } from '../../services/routes/view'
+import { transportLines } from '../../services/routes/segmentView'
 import { ROUTE_COLORS, ROUTE_HALO_COLOR } from '../../services/routes/model'
 import { MapRouteOverview } from '../routes/MapRouteOverview'
 import { RouteAttribution } from '../routes/DayRouteSummary'
@@ -56,10 +64,16 @@ function groupLabel(trip: Trip, place: TripPlace) {
 
 export default function MapPage() {
   const { activeTrip, status, group, setGroup } = useTravel()
-  const { state: routesState } = useRoutes()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const origin = readPlanReturn(location.state)
+  const planReturn = origin?.tripId === activeTrip?.id ? origin : null
+  const returnDayIndex =
+    activeTrip?.days.findIndex((day) => day.id === planReturn?.dayId) ?? -1
+  const { state: routesState, segments } = useRoutes()
   const visibleRoutes = useMemo(
-    () => visibleDayRoutes(routesState, activeTrip, group),
-    [routesState, activeTrip, group],
+    () => transportLines(segments, routesState, activeTrip, group),
+    [segments, routesState, activeTrip, group],
   )
   const [searchParams] = useSearchParams()
   const requestedPlaceId = searchParams.get('place')
@@ -75,15 +89,41 @@ export default function MapPage() {
   const [interaction, setInteraction] = useState<Interaction>(null)
   const [composer, setComposer] = useState<'manual' | 'search' | null>(null)
   const [interactionTripId, setInteractionTripId] = useState(activeTrip?.id)
+  const [libraryTarget, setLibraryTarget] = useState<{
+    tripId: string
+    group: string
+    dayId: string | null
+  } | null>(null)
   const focusedRequest = useRef('')
   const fittedTrip = useRef<string | undefined>(undefined)
   const picking = interaction?.mode === 'picking'
+  // 页面来源只接管系统返回；主导航仍允许直接前往其他页面。
+  useBackHandler((_proceed, source) => {
+    if (
+      source !== 'system' ||
+      !planReturn ||
+      interaction ||
+      composer ||
+      libraryTarget
+    )
+      return false
+    void navigate('/plan', { state: { planReturn }, replace: true })
+    return true
+  }, !!planReturn)
 
   // 行程切换后结束当前选点，避免返回旧行程时重新出现尚未保存的面板。
   if (interactionTripId !== activeTrip?.id) {
     setInteractionTripId(activeTrip?.id)
     setInteraction(null)
     setComposer(null)
+  }
+
+  // 添加面板绑定打开时的行程和日期；切换筛选后关闭，避免误加到新目标。
+  if (
+    libraryTarget &&
+    (libraryTarget.tripId !== activeTrip?.id || libraryTarget.group !== group)
+  ) {
+    setLibraryTarget(null)
   }
 
   const visiblePlaces = activeTrip ? getGroupPlaces(activeTrip, group) : []
@@ -119,9 +159,9 @@ export default function MapPage() {
     if (canUseAmap()) {
       const navigate = document.createElement('button')
       navigate.type = 'button'
-      navigate.textContent = '高德导航'
+      navigate.textContent = '高德驾车导航'
       navigate.className = styles.popupNavigate
-      navigate.setAttribute('aria-label', '高德导航到' + place.name)
+      navigate.setAttribute('aria-label', '高德驾车导航到' + place.name)
       const message = document.createElement('p')
       message.className = styles.navigationMessage
       message.textContent = '从当前位置导航，路线以高德为准。'
@@ -203,6 +243,9 @@ export default function MapPage() {
             coordinates,
             sourceUrl: undefined,
             source: undefined,
+            citycode: undefined,
+            adcode: undefined,
+            cityName: undefined,
             address: undefined,
           }
         : {
@@ -345,9 +388,9 @@ export default function MapPage() {
     let active = true
     const data = {
       type: 'FeatureCollection' as const,
-      features: visibleRoutes.map(({ entry, index }) => ({
+      features: visibleRoutes.map(({ entry, index, mode }) => ({
         type: 'Feature' as const,
-        properties: { color: ROUTE_COLORS[index % ROUTE_COLORS.length] },
+        properties: { color: ROUTE_COLORS[index % ROUTE_COLORS.length], mode },
         geometry: entry.result.geometry,
       })),
     }
@@ -373,7 +416,18 @@ export default function MapPage() {
         type: 'line',
         source: 'onway-driving-routes',
         layout: { 'line-cap': 'round', 'line-join': 'round' },
-        paint: { 'line-color': ['get', 'color'], 'line-width': 4 },
+        paint: {
+          'line-color': ['get', 'color'],
+          'line-width': 4,
+          'line-dasharray': [
+            'case',
+            ['==', ['get', 'mode'], 'walking'],
+            ['literal', [1, 2]],
+            ['==', ['get', 'mode'], 'driving'],
+            ['literal', [1, 0]],
+            ['literal', [3, 1]],
+          ],
+        },
       })
     }
     return () => {
@@ -427,9 +481,13 @@ export default function MapPage() {
       (item) => item.id === requestedPlaceId,
     )
     if (!place) return
-    // 由计划或今天进入时显示目标，即使之前地图筛选的是另一天。
-    if (group !== 'all') {
-      setGroup('all')
+    // 直接定位到目标所属日，保留当天交通上下文，不清空为全部日期。
+    const targetGroup =
+      activeTrip.days.find((day) =>
+        day.places.some((item) => item.id === place.id),
+      )?.id ?? 'unscheduled'
+    if (group !== targetGroup) {
+      setGroup(targetGroup)
       return
     }
     focusedRequest.current = requestKey
@@ -440,6 +498,23 @@ export default function MapPage() {
       duration: 0,
     })
   }, [requestedPlaceId, activeTrip, group, setGroup, state, showDetails])
+
+  function focusPlace(place: TripPlace) {
+    if (!activeTrip || picking || interaction) return
+    closePopup()
+    if (state !== 'ready' || !mapRef.current) {
+      // 底图不可用时，名称入口仍能打开本地资料，独立编辑按钮也始终保留。
+      setInteraction({ mode: 'editing', draft: placeDraft(activeTrip, place) })
+      return
+    }
+    mapRef.current.easeTo({
+      center: [place.coordinates.longitude, place.coordinates.latitude],
+      zoom: 13,
+      duration: 400,
+    })
+    showDetails(activeTrip, place)
+    container.current?.scrollIntoView?.({ block: 'center', behavior: 'smooth' })
+  }
 
   function fitAll() {
     const map = mapRef.current
@@ -462,23 +537,42 @@ export default function MapPage() {
 
   return (
     <div className="page">
-      <div className="pageHeading">
-        <div>
-          <h1>地图</h1>
-          <p className="muted">
-            {activeTrip
-              ? `${activeTrip.name} · 当前显示 ${visiblePlaces.length} 个地点`
-              : '未选择行程'}
-          </p>
-        </div>
-        <span className="tag">在线底图</span>
-      </div>
+      {planReturn && (
+        <GuardedLink
+          className={styles.returnLink}
+          to="/plan"
+          state={{ planReturn }}
+        >
+          <ArrowLeft size={16} />
+          {returnDayIndex >= 0
+            ? '返回第 ' + (returnDayIndex + 1) + ' 天计划'
+            : planReturn.dayId === null
+              ? '返回未安排计划'
+              : '返回计划'}
+        </GuardedLink>
+      )}
       <fieldset
         className={styles.toolbarLock}
         disabled={picking}
         aria-label="行程选择与筛选"
       >
-        <TravelToolbar />
+        <TravelToolbar
+          compact
+          heading={
+            <>
+              <h1>地图</h1>
+              <p className="muted">
+                {activeTrip
+                  ? activeTrip.name +
+                    ' · 当前显示 ' +
+                    visiblePlaces.length +
+                    ' 个地点'
+                  : '未选择行程'}
+              </p>
+            </>
+          }
+          actions={<span className="tag">在线底图</span>}
+        />
       </fieldset>
       {!activeTrip && status === 'ready' && (
         <div className={styles.emptyTrip}>
@@ -510,36 +604,47 @@ export default function MapPage() {
         </div>
       )}
       {!picking && activeTrip && (
-        <SearchPanel
-          inline
-          onSelect={(place) => {
-            closePopup()
-            setInteraction({
-              mode: 'editing',
-              draft: {
-                ...place,
-                id: crypto.randomUUID(),
-                dayId:
-                  group === 'all' || group === 'unscheduled' ? null : group,
-              },
-            })
-          }}
-        />
-      )}
-      {!picking && activeTrip && (
-        <div className={styles.addActions}>
-          <button
-            className="secondaryButton"
-            onClick={() => setComposer('manual')}
-          >
-            输入坐标
-          </button>
-          <Link className="textButton" to="/places">
-            从地点库添加
-          </Link>
+        <div className={styles.searchTools}>
+          <SearchPanel
+            inline
+            onSelect={(place) => {
+              closePopup()
+              setInteraction({
+                mode: 'editing',
+                draft: {
+                  ...place,
+                  id: crypto.randomUUID(),
+                  dayId:
+                    group === 'all' || group === 'unscheduled' ? null : group,
+                },
+              })
+            }}
+          />
+          <div className={styles.addActions}>
+            <button
+              className="secondaryButton"
+              onClick={() => setComposer('manual')}
+            >
+              输入坐标
+            </button>
+            <button
+              type="button"
+              className="secondaryButton"
+              onClick={() => {
+                closePopup()
+                setLibraryTarget({
+                  tripId: activeTrip.id,
+                  group,
+                  dayId:
+                    group === 'all' || group === 'unscheduled' ? null : group,
+                })
+              }}
+            >
+              从地点库添加
+            </button>
+          </div>
         </div>
       )}
-      {!picking && group === 'all' && <MapRouteOverview />}
       <div className={styles.layout}>
         <section
           className={`${styles.mapCard} ${picking ? styles.picking : ''}`}
@@ -579,8 +684,8 @@ export default function MapPage() {
             <Expand size={18} />
           </button>
         </section>
-        <aside className={`card ${styles.places}`}>
-          {!picking && group !== 'all' && <MapRouteOverview />}
+        {!picking && group !== 'unscheduled' && <MapRouteOverview />}
+        <section className={'card ' + styles.places} aria-label="沿途地点">
           <h2>
             沿途地点 <span>{visiblePlaces.length}</span>
           </h2>
@@ -599,7 +704,17 @@ export default function MapPage() {
                 <li key={place.id}>
                   <span className={styles.order}>{index + 1}</span>
                   <div>
-                    <h3>{place.name}</h3>
+                    <h3>
+                      <button
+                        type="button"
+                        className={styles.placeName}
+                        aria-label={'在地图上查看' + place.name}
+                        disabled={picking}
+                        onClick={() => focusPlace(place)}
+                      >
+                        {place.name}
+                      </button>
+                    </h3>
                     <p>{activeTrip && groupLabel(activeTrip, place)}</p>
                     {place.note && (
                       <p className={styles.placeNote}>{place.note}</p>
@@ -626,8 +741,19 @@ export default function MapPage() {
             </ol>
           )}
           {activeTrip && <RouteAttribution />}
-        </aside>
+        </section>
       </div>
+      {activeTrip &&
+        libraryTarget &&
+        libraryTarget.tripId === activeTrip.id &&
+        libraryTarget.group === group && (
+          <LibraryPicker
+            key={libraryTarget.tripId + ':' + libraryTarget.group}
+            trip={activeTrip}
+            dayId={libraryTarget.dayId}
+            onClose={() => setLibraryTarget(null)}
+          />
+        )}
       {activeTrip && composer && (
         <PlaceComposer
           key={activeTrip.id}

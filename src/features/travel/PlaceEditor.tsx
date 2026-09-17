@@ -2,7 +2,11 @@ import { useState, type FormEvent } from 'react'
 import { MapPin, Save, Trash2 } from 'lucide-react'
 import { EditPanel } from '../../components/EditPanel'
 import { useTravel } from '../../services/travel/TravelContext'
-import { formatDayLabel, samePlace } from '../../services/travel/model'
+import {
+  categoryName,
+  formatDayLabel,
+  samePlace,
+} from '../../services/travel/model'
 import type { Trip, TripPlace } from '../../services/travel/types'
 import {
   parseCoordinates,
@@ -31,8 +35,12 @@ export function PlaceEditor({
   draft,
   onClose,
   onPickLocation,
+  afterPlaceId,
+  onSaved,
 }: {
   trip?: Trip
+  afterPlaceId?: string
+  onSaved?: (placeId: string, dayId: string | null) => void
   draft: PlaceDraft
   onClose: () => void
   onPickLocation?: (draft: PlaceDraft) => void
@@ -80,6 +88,9 @@ export function PlaceEditor({
       ...(changed
         ? {
             source: undefined,
+            citycode: undefined,
+            adcode: undefined,
+            cityName: undefined,
             sourceUrl: undefined,
             address: form.address === draft.address ? undefined : form.address,
           }
@@ -118,11 +129,20 @@ export function PlaceEditor({
     }
     const ok = await run(
       trip
-        ? { type: 'savePlace', tripId: trip.id, dayId, place: normalized }
+        ? {
+            type: 'savePlace',
+            tripId: trip.id,
+            dayId,
+            place: normalized,
+            afterPlaceId:
+              !original && dayId === draft.dayId ? afterPlaceId : undefined,
+          }
         : { type: 'saveLibraryPlace', place: normalized, allowDuplicate },
     )
-    if (ok) onClose()
-    else setError('地点保存失败，输入已保留，请重试。')
+    if (ok) {
+      onSaved?.(normalized.id, dayId)
+      onClose()
+    } else setError('地点保存失败，输入已保留，请重试。')
   }
   async function remove() {
     const ok = await run(
@@ -197,6 +217,25 @@ export function PlaceEditor({
                 ? '所属行程：' + trip.name
                 : '地点库 · 已有行程副本不受修改影响'}
             </p>
+            {trip && !original && (
+              <p className="muted">
+                {form.dayId
+                  ? formatDayLabel(
+                      trip,
+                      trip.days.findIndex((day) => day.id === form.dayId),
+                    )
+                  : '未安排'}{' '}
+                ·
+                {afterPlaceId && form.dayId === draft.dayId
+                  ? ' 在“' +
+                    [
+                      ...trip.days.flatMap((day) => day.places),
+                      ...trip.unscheduledPlaces,
+                    ].find((place) => place.id === afterPlaceId)?.name +
+                    '”之后插入'
+                  : ' 添加到末尾'}
+              </p>
+            )}
             <label>
               地点名称
               <input
@@ -223,11 +262,17 @@ export function PlaceEditor({
                 }
               >
                 <option value="">未分类</option>
-                {workspace?.categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
+                {workspace?.categories
+                  .filter(
+                    (category) =>
+                      category.id !== 'category-transport' ||
+                      form.categoryId === category.id,
+                  )
+                  .map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {categoryName(workspace, category.id)}
+                    </option>
+                  ))}
               </select>
             </label>
             <label>

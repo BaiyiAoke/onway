@@ -49,7 +49,7 @@ describe('高德导航边界', () => {
     vi.mocked(AppLauncher.canOpenUrl).mockResolvedValue({ value: false })
     render(<AmapButton place={place} />)
     fireEvent.click(
-      screen.getByRole('button', { name: '高德导航到' + place.name }),
+      screen.getByRole('button', { name: '高德驾车导航到' + place.name }),
     )
     await screen.findByRole('alert')
     expect(screen.getByRole('alert')).toHaveTextContent('未检测到高德地图')

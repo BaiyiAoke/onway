@@ -103,7 +103,7 @@ describe('个人备注未保存保护', () => {
       screen.getByRole('dialog', { name: '个人备注尚未保存' }),
     ).toBeInTheDocument()
     expect(onLeave).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('button', { name: '放弃修改' }))
+    fireEvent.click(screen.getByRole('button', { name: '放弃并继续' }))
     expect(input).toHaveValue('最近保存的备注')
     expect(store.set).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: '切换计划' }))

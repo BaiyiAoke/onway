@@ -10,7 +10,11 @@ const state = vi.hoisted(() => ({
 }))
 
 vi.mock('../../services/travel/TravelContext', () => ({
-  useTravel: () => ({ ...state, status: 'ready' }),
+  useTravel: () => ({
+    ...state,
+    status: 'ready',
+    workspace: state.activeTrip ? { trips: [state.activeTrip] } : null,
+  }),
 }))
 vi.mock('../travel/TravelToolbar', () => ({
   TravelToolbar: () => <div>行程切换</div>,
@@ -43,7 +47,7 @@ function exampleTrip(startDate: string | null): Trip {
 }
 
 function showPage() {
-  render(
+  return render(
     <MemoryRouter>
       <TodayPage />
     </MemoryRouter>,
@@ -104,9 +108,111 @@ describe('今天页的真实行程', () => {
 
 vi.mock('../../services/routes/RoutesContext', () => ({
   useRoutes: () => ({
+    segments: { status: 'ready', entries: {}, operations: {}, error: null },
+    segmentController: {
+      calculate: vi.fn(),
+      calculateDay: vi.fn(),
+      retrySave: vi.fn(),
+    },
     state: { status: 'ready', entries: {}, operations: {}, error: null },
     calculate: vi.fn(),
     retrySave: vi.fn(),
     reload: vi.fn(),
   }),
 }))
+
+describe('总览紧凑预览', () => {
+  it.each([0, 1, 3, 5, 20])(
+    '%s 个地点只预览前三个，展开后保持 N−1 段对应关系',
+    (count) => {
+      state.activeTrip = exampleTrip('2026-10-01')
+      const day = state.activeTrip.days[0],
+        template = day.places[0]
+      day.places = Array.from({ length: count }, (_, index) => ({
+        ...template,
+        id: 'p' + index,
+        name: '地点' + index,
+      }))
+      showPage()
+      const visible = Math.min(3, count)
+      expect(
+        screen.queryAllByRole('link', { name: /^在地图查看/ }),
+      ).toHaveLength(visible)
+      expect(screen.queryAllByRole('button', { name: /^交通：/ })).toHaveLength(
+        Math.max(0, visible - 1),
+      )
+      expect(
+        screen.queryByLabelText('快速选择交通方式'),
+      ).not.toBeInTheDocument()
+      if (count > 1)
+        expect(screen.getByLabelText('当天交通汇总')).toHaveTextContent(
+          '0 / ' + (count - 1) + ' 段有结果',
+        )
+      if (count > 3) {
+        fireEvent.click(
+          screen.getByRole('button', { name: '展开全部 ' + count + ' 个地点' }),
+        )
+        expect(
+          screen.getAllByRole('link', { name: /^在地图查看/ }),
+        ).toHaveLength(count)
+        const segments = screen.getAllByRole('button', { name: /^交通：/ })
+        expect(segments).toHaveLength(count - 1)
+        segments.forEach((segment, i) => {
+          const from = screen.getByRole('link', { name: '在地图查看地点' + i }),
+            to = screen.getByRole('link', { name: '在地图查看地点' + (i + 1) })
+          expect(segment).toHaveAccessibleName(
+            '交通：地点' + i + '到地点' + (i + 1),
+          )
+          expect(
+            from.compareDocumentPosition(segment) &
+              Node.DOCUMENT_POSITION_FOLLOWING,
+          ).toBeTruthy()
+          expect(
+            segment.compareDocumentPosition(to) &
+              Node.DOCUMENT_POSITION_FOLLOWING,
+          ).toBeTruthy()
+        })
+        fireEvent.click(screen.getByRole('button', { name: '收起' }))
+        expect(
+          screen.getAllByRole('link', { name: /^在地图查看/ }),
+        ).toHaveLength(3)
+      } else
+        expect(
+          screen.queryByRole('button', { name: /展开全部/ }),
+        ).not.toBeInTheDocument()
+    },
+  )
+  it('切换行程或预览日期后收起，查看完整计划定位到预览日期', () => {
+    state.activeTrip = exampleTrip('2026-09-08')
+    const day = state.activeTrip.days[1]
+    day.places = Array.from({ length: 5 }, (_, i) => ({
+      ...day.places[0],
+      id: 'p' + i,
+      name: '当天地点' + i,
+    }))
+    const page = showPage()
+    fireEvent.click(screen.getByRole('button', { name: '展开全部 5 个地点' }))
+    fireEvent.click(screen.getByRole('link', { name: '查看完整计划' }))
+    expect(state.setGroup).toHaveBeenLastCalledWith('day-2')
+    state.activeTrip = { ...state.activeTrip, id: 'trip-2' }
+    page.rerender(
+      <MemoryRouter>
+        <TodayPage />
+      </MemoryRouter>,
+    )
+    expect(screen.getAllByRole('link', { name: /^在地图查看/ })).toHaveLength(3)
+    fireEvent.click(screen.getByRole('button', { name: '展开全部 5 个地点' }))
+    state.activeTrip = { ...state.activeTrip, startDate: '2026-10-01' }
+    page.rerender(
+      <MemoryRouter>
+        <TodayPage />
+      </MemoryRouter>,
+    )
+    expect(
+      screen.getByRole('heading', { name: '第 1 天预览' }),
+    ).toBeInTheDocument()
+    expect(
+      screen.queryByRole('button', { name: '收起' }),
+    ).not.toBeInTheDocument()
+  })
+})

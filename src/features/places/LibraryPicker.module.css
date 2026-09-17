@@ -1,0 +1,59 @@
+/* 地点库的页内批量添加面板 */
+.inlineCheck {
+  display: flex !important;
+  align-items: center;
+  gap: 9px;
+}
+.inlineCheck input {
+  width: 18px !important;
+  min-height: 18px !important;
+  flex: none;
+}
+.libraryList {
+  display: grid;
+  gap: 10px;
+  max-height: 380px;
+  overflow-y: auto;
+}
+.libraryList article {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+.libraryList article > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.libraryList article > button {
+  flex-shrink: 0;
+}
+.libraryList p {
+  margin: 4px 0 0;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  overflow-wrap: anywhere;
+}
+
+/* 已加入反馈与连续挑选完成区 */
+.libraryList strong {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.libraryList .joined {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 14px;
+}

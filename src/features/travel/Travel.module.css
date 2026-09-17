@@ -33,9 +33,11 @@
 }
 .groups {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: thin;
   gap: 8px;
-  padding: 16px 0 8px;
+  padding: 12px 0 8px;
 }
 .groups button {
   flex-shrink: 0;
@@ -167,4 +169,107 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 12px;
+}
+
+/* 页面紧凑工具栏：标题、行程与操作共享一行，日期独立横滑 */
+.compact {
+  margin-bottom: 18px;
+}
+.compact .selectorRow {
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+}
+.compact .selector {
+  width: min(330px, 100%);
+}
+.toolbarHeading {
+  flex: 1;
+  min-width: 0;
+}
+.toolbarHeading h1 {
+  font-size: var(--text-2xl);
+  margin: 0;
+  letter-spacing: -0.03em;
+}
+.toolbarHeading p {
+  margin: 5px 0 0;
+  font-size: var(--text-sm);
+}
+.toolbarActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.compact .saveState:empty {
+  display: none;
+}
+@media (max-width: 700px) {
+  .compact .selectorRow {
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+  .compact .selector {
+    order: 3;
+    flex-basis: 100%;
+    width: 100%;
+  }
+  .compact .saveState {
+    order: 4;
+  }
+  .toolbarHeading {
+    flex-basis: 40%;
+  }
+}
+
+/* 桌面直接选日并前后切换，手机保留单行日期手势。 */
+.dateBar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+}
+.dateBar .groups {
+  min-width: 0;
+  overflow: visible;
+}
+.dateNavigation {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.dateNavigation label {
+  min-width: 0;
+}
+.dateNavigation select {
+  width: 100%;
+  max-width: 330px;
+  min-height: var(--control-height-sm);
+  padding: 10px var(--select-chevron-space) 10px 12px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--surface-card);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--text-sm);
+}
+.groups .mobileDay {
+  display: none;
+}
+@media (max-width: 700px) {
+  .dateBar {
+    display: block;
+  }
+  .dateNavigation {
+    display: none;
+  }
+  .dateBar .groups {
+    overflow-x: auto;
+  }
+  .groups .mobileDay {
+    display: block;
+  }
 }

@@ -11,7 +11,7 @@ import styles from './Routes.module.css'
 export function RouteAttribution() {
   return (
     <p className={styles.attribution}>
-      路线由{' '}
+      路线由高德地图或{' '}
       <a href="https://project-osrm.org/" target="_blank" rel="noreferrer">
         OSRM
       </a>{' '}
@@ -43,7 +43,7 @@ export function RouteAttribution() {
   )
 }
 
-export function DayRouteSummary({
+export function LegacyDayRouteSummary({
   trip,
   day,
   editable = false,
@@ -171,7 +171,7 @@ export function DayRouteSummary({
   )
 }
 
-export function RouteLeg({
+export function LegacyRouteLeg({
   tripId,
   day,
   toIndex,
@@ -193,3 +193,5 @@ export function RouteLeg({
     </p>
   )
 }
+
+export { DayRouteSummary, RouteLeg } from './TransportSummary'

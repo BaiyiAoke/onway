@@ -7,6 +7,15 @@ export interface SearchSettings {
 }
 const KEY = 'search.provider.v1'
 const amap = new AmapSearch()
+const settingsListeners = new Set<() => void>()
+
+// 仅通知同一应用内的来源展示重新读取，不携带 Key，也不发起查询。
+export function subscribeSearchSettings(listener: () => void) {
+  settingsListeners.add(listener)
+  return () => {
+    settingsListeners.delete(listener)
+  }
+}
 export function getDefaultSearchSettings(): SearchSettings {
   // 私有构建可预置个人 Key；设备上保存的设置优先，切换服务不会覆盖个人选择。
   const key = import.meta.env.VITE_AMAP_SEARCH_KEY?.trim() ?? ''
@@ -24,7 +33,7 @@ export async function getSearchSettings(): Promise<SearchSettings> {
     !['osm', 'amap'].includes(value.provider) ||
     typeof value.amapKey !== 'string'
   )
-    throw new Error('搜索设置读取失败，请重新保存。')
+    throw new Error('地图服务设置读取失败，请重新保存。')
   return value
 }
 export async function saveSearchSettings(value: SearchSettings) {
@@ -38,6 +47,7 @@ export async function saveSearchSettings(value: SearchSettings) {
     KEY,
     JSON.stringify({ provider: value.provider, amapKey: key }),
   )
+  settingsListeners.forEach((listener) => listener())
 }
 export async function searchPlaces(query: string, signal: AbortSignal) {
   const settings = await getSearchSettings()

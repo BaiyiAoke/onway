@@ -1,4 +1,11 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react'
+import {
+  useEffect,
+  useLayoutEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react'
 import { X } from 'lucide-react'
 import { useBackHandler } from './BackHandler'
 import styles from './EditPanel.module.css'
@@ -27,14 +34,24 @@ export function EditPanel({
     return true
   }
   useBackHandler(requestClose)
-  useEffect(() => {
+  useLayoutEffect(() => {
     const element = dialog.current
+    const trigger = document.activeElement
     const oldOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     element?.showModal()
     return () => {
       element?.close()
       document.body.style.overflow = oldOverflow
+      // React 移除 dialog 后原生焦点恢复不稳定，在卸载前显式返回触发控件。
+      const activeDialog = document.querySelector('dialog[open]')
+      if (
+        trigger instanceof HTMLElement &&
+        trigger.isConnected &&
+        (!activeDialog || activeDialog.contains(trigger))
+      ) {
+        trigger.focus({ preventScroll: true })
+      }
     }
   }, [])
   useEffect(() => {

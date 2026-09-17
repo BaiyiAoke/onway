@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, useLocation } from 'react-router-dom'
+import { useBackHandler } from '../../components/BackHandler'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { CachedRoute } from '../../services/routes/model'
 import { routeFingerprint, routeKey } from '../../services/routes/model'
@@ -128,7 +129,10 @@ vi.mock('maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url', () => ({
 vi.mock('../../services/travel/TravelContext', () => ({
   useTravel: () => state.travel,
 }))
-vi.mock('../../components/BackHandler', () => ({ useBackHandler: vi.fn() }))
+vi.mock('../../components/BackHandler', async () => ({
+  ...(await vi.importActual('../../components/BackHandler')),
+  useBackHandler: vi.fn(),
+}))
 vi.mock('../travel/TravelToolbar', () => ({
   TravelToolbar: () => <div>行程筛选</div>,
 }))
@@ -162,6 +166,23 @@ vi.mock('../travel/PlaceEditor', () => ({
   ),
 }))
 
+vi.mock('../places/LibraryPicker', () => ({
+  LibraryPicker: ({
+    trip,
+    dayId,
+    onClose,
+  }: {
+    trip: Trip
+    dayId: string | null
+    onClose: () => void
+  }) => (
+    <div role="dialog" aria-label="从地点库添加">
+      <p>{trip.id + ':' + (dayId ?? '未安排')}</p>
+      <button onClick={onClose}>完成选择</button>
+    </div>
+  ),
+}))
+
 import MapPage from './MapPage'
 
 function exampleTrip(): Trip {
@@ -185,10 +206,23 @@ function exampleTrip(): Trip {
     unscheduledPlaces: [],
   }
 }
-function page(path = '/map') {
+function LocationProbe() {
+  const location = useLocation()
+  return <output aria-label="路由位置">{JSON.stringify(location)}</output>
+}
+function page(path = '/map', locationState?: unknown) {
   return (
-    <MemoryRouter initialEntries={[path]}>
+    <MemoryRouter
+      initialEntries={[
+        {
+          pathname: path.split('?')[0],
+          search: path.includes('?') ? '?' + path.split('?')[1] : '',
+          state: locationState,
+        },
+      ]}
+    >
       <MapPage />
+      <LocationProbe />
     </MemoryRouter>
   )
 }
@@ -209,6 +243,101 @@ describe('地图编辑与生命周期', () => {
         disconnect() {}
       },
     )
+  })
+
+  it('点击沿途地点名称定位并打开弹窗，不触发地图新增地点', () => {
+    render(page())
+    act(() => state.maps[0].handlers.load())
+    fireEvent.click(screen.getByRole('button', { name: '在地图上查看武威' }))
+    expect(state.maps[0].easeTo).toHaveBeenCalledWith(
+      expect.objectContaining({ center: [102.638, 37.929], zoom: 13 }),
+    )
+    expect(screen.getByRole('button', { name: '编辑地点' })).toBeVisible()
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('尚未保存的地点')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '编辑地点' }))
+    expect(screen.getByRole('dialog', { name: '地点编辑' })).toHaveTextContent(
+      '武威',
+    )
+    fireEvent.click(screen.getByRole('button', { name: '重新选点' }))
+    expect(
+      screen.getByRole('button', { name: '在地图上查看武威' }),
+    ).toBeDisabled()
+  })
+
+  it('底图加载中和失败时名称入口仍可打开本地资料', () => {
+    render(page())
+    fireEvent.click(screen.getByRole('button', { name: '在地图上查看武威' }))
+    expect(screen.getByRole('dialog', { name: '地点编辑' })).toHaveTextContent(
+      '武威',
+    )
+    expect(state.maps[0].easeTo).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByRole('button', { name: '取消编辑' }))
+    fireEvent(window, new Event('offline'))
+    fireEvent.click(screen.getByRole('button', { name: '在地图上查看武威' }))
+    expect(screen.getByRole('dialog', { name: '地点编辑' })).toHaveTextContent(
+      '武威',
+    )
+  })
+
+  it('地图下方显示对应交通信息，未安排不显示汇总', () => {
+    const view = render(page())
+    const map = screen.getByRole('region', { name: '旅行地图' })
+    const places = screen.getByRole('region', { name: '沿途地点' })
+    const legend = screen.getByLabelText('每日路线图例')
+    expect(
+      map.compareDocumentPosition(legend) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(
+      legend.compareDocumentPosition(places) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    state.travel.group = 'day-1'
+    view.rerender(page())
+    expect(screen.queryByLabelText('每日路线图例')).not.toBeInTheDocument()
+    const summary = screen.getByRole('region', { name: '当天交通汇总' })
+    expect(
+      map.compareDocumentPosition(summary) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(
+      summary.compareDocumentPosition(places) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    state.travel.group = 'unscheduled'
+    view.rerender(page())
+    expect(
+      screen.queryByRole('region', { name: '当天交通汇总' }),
+    ).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('每日路线图例')).not.toBeInTheDocument()
+  })
+
+  it('地点库在页内打开并绑定当天，切换日期或行程关闭旧目标', () => {
+    state.travel.group = 'day-1'
+    const view = render(page())
+    expect(
+      screen.queryByRole('link', { name: '从地点库添加' }),
+    ).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '从地点库添加' }))
+    expect(
+      screen.getByRole('dialog', { name: '从地点库添加' }),
+    ).toHaveTextContent('trip-1:day-1')
+    fireEvent.click(screen.getByRole('button', { name: '完成选择' }))
+    expect(screen.getByRole('region', { name: '旅行地图' })).toBeVisible()
+    expect(state.travel.group).toBe('day-1')
+    fireEvent.click(screen.getByRole('button', { name: '从地点库添加' }))
+    state.travel.group = 'unscheduled'
+    view.rerender(page())
+    expect(
+      screen.queryByRole('dialog', { name: '从地点库添加' }),
+    ).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: '从地点库添加' }))
+    expect(
+      screen.getByRole('dialog', { name: '从地点库添加' }),
+    ).toHaveTextContent('trip-1:未安排')
+    state.travel.activeTrip = { ...exampleTrip(), id: 'trip-2' }
+    view.rerender(page())
+    expect(
+      screen.queryByRole('dialog', { name: '从地点库添加' }),
+    ).not.toBeInTheDocument()
   })
 
   it('地点保存和筛选更新标记，保留同一个地图实例', () => {
@@ -330,7 +459,49 @@ describe('地图编辑与生命周期', () => {
     ).toBe(true)
   })
 
+  it('由计划进入后保留目标日，按钮及系统返回携带原地点锚点', () => {
+    const origin = { tripId: 'trip-1', dayId: 'day-1', placeId: 'place-1' }
+    const view = render(page('/map?place=place-1', { planReturn: origin }))
+    act(() => state.maps[0].handlers.load())
+    expect(state.travel.setGroup).toHaveBeenLastCalledWith('day-1')
+    state.travel.group = 'day-1'
+    view.rerender(page('/map?place=place-1', { planReturn: origin }))
+    expect(screen.getByRole('button', { name: '编辑地点' })).toBeVisible()
+    fireEvent.click(screen.getByRole('link', { name: '返回第 1 天计划' }))
+    expect(screen.getByLabelText('路由位置')).toHaveTextContent(
+      '"pathname":"/plan"',
+    )
+    expect(screen.getByLabelText('路由位置')).toHaveTextContent(
+      JSON.stringify(origin),
+    )
+    const handler = [...vi.mocked(useBackHandler).mock.calls]
+      .reverse()
+      .find((call) => call[1] === true)?.[0]
+    expect(handler).toBeDefined()
+    act(() => {
+      expect(handler?.(undefined, 'navigation')).toBe(false)
+    })
+    act(() => {
+      expect(handler?.(undefined, 'system')).toBe(true)
+    })
+    expect(screen.getByLabelText('路由位置')).toHaveTextContent(
+      JSON.stringify(origin),
+    )
+  })
+
+  it('无关或失效行程来源不出现错误返回入口', () => {
+    render(
+      page('/map', {
+        planReturn: { tripId: 'other', dayId: 'day-1', placeId: 'place-1' },
+      }),
+    )
+    expect(
+      screen.queryByRole('link', { name: /返回.*计划/ }),
+    ).not.toBeInTheDocument()
+  })
+
   it('带地点参数进入时在加载后定位；无行程不写入示例地点', () => {
+    state.travel.group = 'day-1'
     const view = render(page('/map?place=place-1'))
     expect(
       screen.queryByRole('button', { name: '编辑地点' }),
@@ -352,6 +523,12 @@ describe('地图编辑与生命周期', () => {
 
 vi.mock('../../services/routes/RoutesContext', () => ({
   useRoutes: () => ({
+    segments: { status: 'ready', entries: {}, operations: {}, error: null },
+    segmentController: {
+      calculate: vi.fn(),
+      calculateDay: vi.fn(),
+      retrySave: vi.fn(),
+    },
     state: {
       status: 'ready',
       entries: state.entries,

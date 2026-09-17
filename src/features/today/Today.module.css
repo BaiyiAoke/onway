@@ -2,17 +2,17 @@
 .hero {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  min-height: 306px;
+  min-height: 200px;
   border-radius: var(--radius-lg);
   background: var(--hero-sky);
   overflow: hidden;
-  margin-bottom: 24px;
+  margin-bottom: 18px;
   position: relative;
 }
 .heroContent {
   position: relative;
   z-index: 2;
-  padding: 35px 39px;
+  padding: 25px 32px;
 }
 .heroTag {
   color: var(--text-brand-muted);
@@ -20,8 +20,8 @@
   letter-spacing: 0.08em;
 }
 .heroContent h2 {
-  margin: 20px 0 13px;
-  font-size: var(--text-3xl);
+  margin: 14px 0 10px;
+  font-size: var(--text-2xl);
   line-height: 1.5;
   font-weight: 500;
   overflow-wrap: anywhere;
@@ -112,12 +112,12 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
-  margin: 0 0 24px;
+  margin: 0 0 18px;
 }
 .tripStats > div {
   background: var(--surface-subtle);
   border-radius: var(--radius-md);
-  padding: 16px 20px;
+  padding: 12px 18px;
 }
 .tripStats dt {
   color: var(--text-muted);
@@ -147,7 +147,8 @@
 /* 地点列表与备注 */
 .grid {
   display: grid;
-  grid-template-columns: 1fr 1.25fr;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
   gap: 24px;
 }
 .sectionHeading {
@@ -155,7 +156,7 @@
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  margin-bottom: 21px;
+  margin-bottom: 12px;
 }
 .sectionHeading h2 {
   margin-bottom: 0;
@@ -169,14 +170,14 @@
   list-style: none;
 }
 .placeList li {
-  border-bottom: 1px solid var(--surface-subtle);
+  min-width: 0;
 }
 .placeLink {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 14px 0;
-  min-height: 62px;
+  padding: 10px 0;
+  min-height: 48px;
 }
 .placeLink > svg {
   color: var(--text-muted);
@@ -230,7 +231,7 @@
 }
 .notes textarea {
   flex: 1;
-  min-height: 172px;
+  min-height: 132px;
   width: 100%;
   resize: vertical;
   border: 1px solid var(--border-subtle);
@@ -272,11 +273,11 @@
 /* 手机堆叠与表单可读性 */
 @media (max-width: 700px) {
   .hero {
-    min-height: 270px;
+    min-height: 180px;
     grid-template-columns: 1fr;
   }
   .heroContent {
-    padding: 26px;
+    padding: 20px 24px;
   }
   /* 窄屏用遮罩让插画左侧渐隐，保留右侧山脊与太阳的完整细节 */
   .landscape {
@@ -316,4 +317,76 @@
   .noteActions .error {
     padding-top: 7px;
   }
+}
+
+/* 首日预览保留阅读主线，全文与长清单按需展开 */
+.placeRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.placeRow .placeLink {
+  flex: 1;
+  min-width: 0;
+}
+.placeLink h3,
+.placeLink p {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+}
+.placeLink h3 {
+  -webkit-line-clamp: 2;
+}
+.placeLink p {
+  -webkit-line-clamp: 1;
+}
+.expandPreview {
+  display: block;
+  width: 100%;
+  min-height: var(--control-height-sm);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-brand);
+  margin-top: 12px;
+  font-size: var(--text-sm);
+}
+.expandPreview:hover {
+  background: var(--brand-050);
+}
+.previewHint {
+  margin-bottom: 8px;
+}
+@media (max-width: 700px) {
+  .placeRow {
+    flex-wrap: wrap;
+    gap: 0;
+  }
+  .placeRow .placeLink {
+    flex-basis: 100%;
+  }
+  .placeRow > div {
+    margin-left: 51px;
+  }
+}
+
+/* 预览末尾两个动作共用一行，不重复占据整行高度 */
+.previewActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+  margin-top: 14px;
+}
+.previewActions .expandPreview {
+  width: auto;
+  margin: 0;
+  padding-inline: 14px;
+}
+.previewActions .textLink {
+  gap: 16px;
+  min-height: var(--control-height-sm);
+  margin: 0 0 0 auto;
 }

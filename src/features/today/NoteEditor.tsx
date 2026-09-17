@@ -23,15 +23,19 @@ export function NoteEditor({
   >('loading')
   const [retry, setRetry] = useState(0)
   const [confirmDiscard, setConfirmDiscard] = useState(false)
+  const pendingNavigation = useRef<(() => void) | null>(null)
   const storeRef = useRef<LocalStore | null>(null)
   const snapshotRef = useRef<StoreSnapshot | null>(null)
   const [saveError, setSaveError] = useState('')
   const dirty = note !== savedNote
 
-  // 主导航和 Android 返回共用注册表；未保存时先询问，不让 exitApp 直接丢弃草稿。
+  // 保留原导航目的地，确认后继续同一次操作；保存失败或恢复冲突时留在草稿。
   useBackHandler(
-    () => {
-      if (status !== 'saving') setConfirmDiscard(true)
+    (proceed) => {
+      if (status !== 'saving') {
+        pendingNavigation.current = proceed ?? null
+        setConfirmDiscard(true)
+      }
       return true
     },
     dirty || status === 'saving',
@@ -64,7 +68,7 @@ export function NoteEditor({
   }, [loadStore, retry])
 
   async function save() {
-    if (!storeRef.current) return
+    if (!storeRef.current || status === 'saving') return false
     setStatus('saving')
     try {
       if (isAtomicStore(storeRef.current) && snapshotRef.current) {
@@ -76,6 +80,7 @@ export function NoteEditor({
       } else await storeRef.current.set(NOTE_KEY, note)
       setSavedNote(note)
       setStatus('saved')
+      return true
     } catch (error) {
       setSaveError(
         error instanceof Error && error.message.includes('已更新')
@@ -83,7 +88,20 @@ export function NoteEditor({
           : '',
       )
       setStatus('saveError')
+      return false
     }
+  }
+
+  function cancelNavigation() {
+    pendingNavigation.current = null
+    setConfirmDiscard(false)
+  }
+
+  function continueNavigation() {
+    const proceed = pendingNavigation.current
+    pendingNavigation.current = null
+    setConfirmDiscard(false)
+    proceed?.()
   }
 
   useEffect(() => {
@@ -166,15 +184,17 @@ export function NoteEditor({
       {confirmDiscard && (
         <EditPanel
           title="个人备注尚未保存"
-          onClose={() => setConfirmDiscard(false)}
+          onClose={cancelNavigation}
+          busy={status === 'saving'}
         >
           <p className="muted">
-            继续编辑可以保留当前输入；放弃后将恢复为最近保存的备注。
+            可以保存后继续，或放弃未保存的修改并前往刚才选择的页面。
           </p>
           <div className={styles.noteActions}>
             <button
               className="secondaryButton"
-              onClick={() => setConfirmDiscard(false)}
+              onClick={cancelNavigation}
+              disabled={status === 'saving'}
             >
               继续编辑
             </button>
@@ -183,12 +203,29 @@ export function NoteEditor({
               onClick={() => {
                 setNote(savedNote)
                 setStatus('ready')
-                setConfirmDiscard(false)
+                continueNavigation()
               }}
+              disabled={status === 'saving'}
             >
-              放弃修改
+              放弃并继续
+            </button>
+            <button
+              className="primaryButton"
+              disabled={status === 'saving'}
+              onClick={() =>
+                void save().then((saved) => {
+                  if (saved) continueNavigation()
+                })
+              }
+            >
+              {status === 'saving' ? '保存中…' : '保存并继续'}
             </button>
           </div>
+          {status === 'saveError' && (
+            <p role="alert" className="formError">
+              {saveError || '保存失败，输入已保留，请重试。'}
+            </p>
+          )}
         </EditPanel>
       )}
     </section>

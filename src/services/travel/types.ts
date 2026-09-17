@@ -1,6 +1,7 @@
 import type { Wgs84Point } from '../routes/types'
+import type { CityInfo, TransportRecord } from '../routes/transportTypes'
 
-export interface TripPlace {
+export interface TripPlace extends CityInfo {
   id: string
   name: string
   note: string
@@ -23,6 +24,7 @@ export interface Trip {
   startDate: string | null
   days: TripDay[]
   unscheduledPlaces: TripPlace[]
+  transport?: TransportRecord[]
 }
 
 export interface PlaceCategory {
@@ -32,7 +34,7 @@ export interface PlaceCategory {
 }
 
 export interface TravelWorkspace {
-  schemaVersion: 2
+  schemaVersion: 4
   libraryPlaces: TripPlace[]
   categories: PlaceCategory[]
   trips: Trip[]
@@ -42,6 +44,20 @@ export interface TravelWorkspace {
 export type PlaceGroup = 'all' | 'unscheduled' | string
 
 export type TravelAction =
+  | {
+      type: 'saveTransport'
+      tripId: string
+      record: TransportRecord
+      expected?: string
+    }
+  | { type: 'deleteTransport'; tripId: string; recordId: string }
+  | {
+      type: 'savePlaceCity'
+      tripId: string
+      placeId: string
+      coordinates: Wgs84Point
+      city: CityInfo
+    }
   | { type: 'saveLibraryPlace'; place: TripPlace; allowDuplicate?: boolean }
   | { type: 'deleteLibraryPlace'; placeId: string }
   | {
@@ -49,6 +65,7 @@ export type TravelAction =
       placeId: string
       tripId: string
       dayId: string | null
+      afterPlaceId?: string
       allowDuplicate?: boolean
     }
   | {
@@ -81,7 +98,13 @@ export type TravelAction =
       tripId: string
       place: TripPlace
       dayId: string | null
+      afterPlaceId?: string
     }
   | { type: 'deletePlace'; tripId: string; placeId: string }
   | { type: 'movePlace'; tripId: string; placeId: string; dayId: string | null }
-  | { type: 'reorderPlace'; tripId: string; placeId: string; direction: -1 | 1 }
+  | {
+      type: 'reorderPlace'
+      tripId: string
+      placeId: string
+      direction: -1 | 1 | 'top' | 'bottom'
+    }

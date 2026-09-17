@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Search, Settings2, X } from 'lucide-react'
 import { EditPanel } from '../../components/EditPanel'
 import {
@@ -11,6 +12,7 @@ import {
   getSearchSettings,
   saveSearchSettings,
   searchPlaces,
+  subscribeSearchSettings,
   type SearchSettings,
 } from '../../services/search/service'
 import forms from '../travel/Travel.module.css'
@@ -76,11 +78,17 @@ function SearchSettingsEditor({
     }
   }
   return (
-    <EditPanel title="搜索设置" onClose={onClose} dirty={dirty} busy={saving}>
+    <EditPanel
+      title="地图服务设置"
+      onClose={onClose}
+      dirty={dirty}
+      busy={saving}
+    >
       <form
         className={forms.form}
         onSubmit={(event) => {
           event.preventDefault()
+          event.stopPropagation()
           void save()
         }}
       >
@@ -100,40 +108,33 @@ function SearchSettingsEditor({
             <option value="osm">OpenStreetMap（无需 Key）</option>
           </select>
         </label>
-        {settings.provider === 'amap' ? (
-          <>
-            <label>
-              高德 Web 服务 Key
-              <input
-                type="password"
-                autoComplete="off"
-                spellCheck={false}
-                required
-                disabled={loading || saving}
-                value={settings.amapKey}
-                onChange={(event) =>
-                  setSettings({ ...settings, amapKey: event.target.value })
-                }
-              />
-            </label>
-            <small>
-              可更换为自己的 Web 服务 Key。配额余量请查看高德控制台。
-            </small>
-          </>
-        ) : (
-          <>
-            <label>
-              Nominatim 服务地址
-              <input
-                type="url"
-                required
-                value={endpoint}
-                disabled={loading || saving}
-                onChange={(event) => setEndpoint(event.target.value)}
-              />
-            </label>
-            <small>公共服务需手动查询，部分地区地点覆盖不完整。</small>
-          </>
+        <label>
+          高德 Web 服务 Key
+          <input
+            type="password"
+            autoComplete="off"
+            value={settings.amapKey}
+            disabled={loading || saving}
+            onChange={(event) =>
+              setSettings({ ...settings, amapKey: event.target.value })
+            }
+          />
+        </label>
+        <small>
+          高德路线与城市识别共用此
+          Key，独立于搜索来源。配额余量请查看高德控制台。
+        </small>
+        {settings.provider === 'osm' && (
+          <label>
+            Nominatim 服务地址
+            <input
+              type="url"
+              required
+              value={endpoint}
+              disabled={loading || saving}
+              onChange={(event) => setEndpoint(event.target.value)}
+            />
+          </label>
         )}
         <small>查询词发送至所选服务，不自动切换。</small>
         {error && (
@@ -154,7 +155,7 @@ function SearchSettingsEditor({
             恢复默认配置
           </button>
           <button className="primaryButton" disabled={loading || saving}>
-            {saving ? '保存中…' : '保存搜索设置'}
+            {saving ? '保存中…' : '保存地图服务设置'}
           </button>
         </div>
       </form>
@@ -184,18 +185,34 @@ export function SearchPanel({
   const request = useRef<AbortController | null>(null)
   useEffect(() => {
     let active = true
-    void getSearchSettings()
-      .then((value) => {
-        if (active) setSettings(value)
-      })
-      .catch(() => {
-        if (active) setError('搜索设置读取失败，请打开设置重新保存。')
-      })
-      .finally(() => {
-        if (active) setLoading(false)
-      })
+    let revision = 0
+    async function readSettings() {
+      const current = ++revision
+      try {
+        const value = await getSearchSettings()
+        if (active && current === revision) setSettings(value)
+      } catch {
+        if (active && current === revision)
+          setError('地图服务设置读取失败，请打开设置重新保存。')
+      } finally {
+        if (active && current === revision) setLoading(false)
+      }
+    }
+    const unsubscribe = subscribeSearchSettings(() => {
+      // 任一设置入口保存后同步来源；旧服务的结果和晚到响应不能混入新来源。
+      request.current?.abort()
+      request.current = null
+      setBusy(false)
+      setResults(null)
+      setCached(false)
+      setError('')
+      setLoading(true)
+      void readSettings()
+    })
+    void readSettings()
     return () => {
       active = false
+      unsubscribe()
       request.current?.abort()
     }
   }, [])
@@ -279,7 +296,7 @@ export function SearchPanel({
           }}
         >
           <Settings2 size={14} />
-          搜索设置
+          地图服务设置
         </button>
       </div>
       {busy && (
@@ -371,6 +388,29 @@ export function SearchPanel({
           }}
         />
       )}
+    </>
+  )
+}
+
+export function MapServiceSettingsButton() {
+  const [opened, setOpened] = useState(false)
+  return (
+    <>
+      <button
+        type="button"
+        className="textButton"
+        onClick={() => setOpened(true)}
+      >
+        地图服务设置
+      </button>
+      {opened &&
+        createPortal(
+          <SearchSettingsEditor
+            onClose={() => setOpened(false)}
+            onSaved={() => {}}
+          />,
+          document.body,
+        )}
     </>
   )
 }

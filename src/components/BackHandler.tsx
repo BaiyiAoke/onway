@@ -7,14 +7,16 @@ import {
   type ReactNode,
 } from 'react'
 
+export type BackSource = 'system' | 'navigation' | 'history'
+type BackAction = (proceed?: () => void, source?: BackSource) => boolean
 interface Registry {
-  register: (handler: () => boolean) => () => void
-  handle: () => boolean
+  register: (handler: BackAction) => () => void
+  handle: (proceed?: () => void, source?: BackSource) => boolean
 }
 const BackContext = createContext<Registry | null>(null)
 
 export function BackHandlerProvider({ children }: { children: ReactNode }) {
-  const handlers = useRef<(() => boolean)[]>([])
+  const handlers = useRef<BackAction[]>([])
   const registry = useMemo<Registry>(
     () => ({
       register(handler) {
@@ -23,9 +25,11 @@ export function BackHandlerProvider({ children }: { children: ReactNode }) {
           handlers.current = handlers.current.filter((item) => item !== handler)
         }
       },
-      handle() {
+      handle(proceed, source = 'system') {
         // 最上层编辑面板先处理返回，避免直接退出应用丢失草稿。
-        return [...handlers.current].reverse().some((handler) => handler())
+        return [...handlers.current]
+          .reverse()
+          .some((handler) => handler(proceed, source))
       },
     }),
     [],
@@ -39,7 +43,10 @@ export function useBackRegistry() {
   if (!value) throw new Error('返回操作缺少 Provider')
   return value
 }
-export function useBackHandler(handler: () => boolean, enabled = true) {
+export function useOptionalBackRegistry() {
+  return useContext(BackContext)
+}
+export function useBackHandler(handler: BackAction, enabled = true) {
   const registry = useContext(BackContext)
   const latest = useRef(handler)
   useEffect(() => {
@@ -47,6 +54,8 @@ export function useBackHandler(handler: () => boolean, enabled = true) {
   }, [handler])
   useEffect(() => {
     if (!enabled || !registry) return
-    return registry.register(() => latest.current())
+    return registry.register((proceed, source) =>
+      latest.current(proceed, source),
+    )
   }, [enabled, registry])
 }

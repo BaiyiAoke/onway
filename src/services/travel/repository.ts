@@ -1,4 +1,5 @@
 import { getLocalStore } from '../storage'
+import { validCity, validTransport } from '../routes/transportValidation'
 import { isAtomicStore, RESTORE_EPOCH_KEY } from '../storage/atomic'
 import type { LocalStore } from '../storage/types'
 import {
@@ -20,24 +21,64 @@ function assertDocument(condition: unknown): asserts condition {
     throw new Error('旅行数据格式异常，已保留原数据，请勿重复覆盖。')
 }
 
-// 文档版本与 SQLite / IndexedDB 表版本独立；后续迁移必须在此显式增加分支。
+// 固定历史分类清单，不能随着新版本默认分类变化而放宽旧文档校验。
+function legacyCategories() {
+  return [
+    ['sight', '景点'],
+    ['food', '餐饮'],
+    ['stay', '住宿'],
+    ['parking', '停车'],
+    ['transport', '交通'],
+  ].map(([id, name]) => ({ id: 'category-' + id, name, builtin: true }))
+}
+
+// 文档版本与 SQLite / IndexedDB 表版本独立；读取仅内存迁移，成功保存才落盘。
 export function migrateWorkspaceDocument(document: unknown): unknown {
   assertDocument(isObject(document))
-  if (document.schemaVersion === 1) {
-    // 读取时仅内存迁移，下一次成功操作整体写入 v2，失败不改动旧原文。
-    return {
-      ...structuredClone(document),
-      schemaVersion: 2,
-      libraryPlaces: [],
-      categories: defaultCategories(),
-    }
-  }
-  if (document.schemaVersion !== 2) {
+  if (document.schemaVersion === 4) return document
+  if (![1, 2, 3].includes(document.schemaVersion as number)) {
     throw new Error(
       '旅行数据版本暂不受支持，已保留原数据，请使用兼容版本打开。',
     )
   }
-  return document
+  const old = structuredClone(document)
+  if (old.schemaVersion === 1) {
+    old.libraryPlaces = []
+    old.categories = legacyCategories()
+  }
+  old.schemaVersion = 3
+  // 先按旧契约校验，缺失或篡改旧内置分类不能借升级修复而掩盖数据损坏。
+  const previous = validateWorkspaceDocument(old, true)
+  const next = { ...previous, schemaVersion: 4 as const }
+  const identifiers = new Set([
+    ...next.categories.map((category) => category.id),
+    ...next.libraryPlaces.map((place) => place.id),
+    ...next.trips.flatMap((trip) => [
+      trip.id,
+      ...trip.unscheduledPlaces.map((place) => place.id),
+      ...trip.days.flatMap((day) => [
+        day.id,
+        ...day.places.map((place) => place.id),
+      ]),
+      ...(trip.transport?.map((record) => record.id) ?? []),
+    ]),
+  ])
+  for (const category of defaultCategories().filter((item) =>
+    ['category-airport', 'category-station'].includes(item.id),
+  )) {
+    const named = next.categories.find((item) => item.name === category.name)
+    if (named) {
+      // 同名自定义分类升级为内置分类，保留 ID，所有库与行程引用原样保留。
+      named.builtin = true
+      continue
+    }
+    let id = category.id
+    let suffix = 2
+    while (identifiers.has(id)) id = category.id + '-' + suffix++
+    next.categories.push({ ...category, id })
+    identifiers.add(id)
+  }
+  return next
 }
 
 export function parseWorkspace(raw: string | null): TravelWorkspace {
@@ -48,10 +89,16 @@ export function parseWorkspace(raw: string | null): TravelWorkspace {
   } catch {
     throw new Error('旅行数据无法解析，已保留原数据，请勿重复覆盖。')
   }
-  const document = migrateWorkspaceDocument(parsed)
+  return validateWorkspaceDocument(migrateWorkspaceDocument(parsed))
+}
+
+function validateWorkspaceDocument(
+  document: unknown,
+  legacy = false,
+): TravelWorkspace {
   assertDocument(
     isObject(document) &&
-      document.schemaVersion === 2 &&
+      document.schemaVersion === (legacy ? 3 : 4) &&
       Array.isArray(document.trips),
   )
   const identifiers = new Set<string>()
@@ -85,22 +132,35 @@ export function parseWorkspace(raw: string | null): TravelWorkspace {
     categoryNames.add(category.name)
     categoryIds.add(category.id as string)
   }
-  for (const builtin of defaultCategories()) {
+  const historicalBuiltins = legacyCategories()
+  const builtins = legacy ? historicalBuiltins : defaultCategories()
+  const matchesBuiltin = (
+    category: Record<string, unknown>,
+    builtin: { id: string; name: string },
+  ) =>
+    category.builtin === true &&
+    category.name === builtin.name &&
+    // 新增分类可沿用历史同名分类的 ID；已有四类和兼容交通仍严格校验。
+    ((!legacy &&
+      ['category-airport', 'category-station'].includes(builtin.id) &&
+      !historicalBuiltins.some((item) => item.id === category.id)) ||
+      category.id === builtin.id)
+  for (const builtin of builtins) {
     assertDocument(
       document.categories.some(
-        (c) =>
-          isObject(c) &&
-          c.id === builtin.id &&
-          c.name === builtin.name &&
-          c.builtin === true,
+        (category) => isObject(category) && matchesBuiltin(category, builtin),
       ),
     )
   }
+  const allowedBuiltins = legacy
+    ? builtins
+    : [...builtins, { id: 'category-transport', name: '交通' }]
   assertDocument(
     document.categories.every(
-      (c) =>
-        isObject(c) &&
-        (!c.builtin || defaultCategories().some((b) => b.id === c.id)),
+      (category) =>
+        isObject(category) &&
+        (!category.builtin ||
+          allowedBuiltins.some((builtin) => matchesBuiltin(category, builtin))),
     ),
   )
   const validPlaces = (places: unknown) => {
@@ -113,6 +173,7 @@ export function parseWorkspace(raw: string | null): TravelWorkspace {
           place.name.trim().length > 0 &&
           typeof place.note === 'string',
       )
+      assertDocument(validCity(place))
       const point = place.coordinates
       assertDocument(isObject(point) && point.crs === 'WGS84')
       assertDocument(
@@ -175,6 +236,30 @@ export function parseWorkspace(raw: string | null): TravelWorkspace {
       validPlaces(day.places)
     }
     validPlaces(trip.unscheduledPlaces)
+    if (trip.transport !== undefined) {
+      assertDocument(Array.isArray(trip.transport))
+      const bindings = new Set<string>()
+      for (const record of trip.transport) {
+        assertDocument(validTransport(record))
+        validId(record.id)
+        if (record.dayId !== null) {
+          const day = (
+            trip.days as { id: string; places: { id: string }[] }[]
+          ).find((d) => d.id === record.dayId)
+          const i = day?.places.findIndex((p) => p.id === record.from.id) ?? -1
+          assertDocument(
+            day && i >= 0 && day.places[i + 1]?.id === record.to.id,
+          )
+          const key = JSON.stringify([
+            record.dayId,
+            record.from.id,
+            record.to.id,
+          ])
+          assertDocument(!bindings.has(key))
+          bindings.add(key)
+        }
+      }
+    }
   }
   assertDocument(
     document.activeTripId === null ||

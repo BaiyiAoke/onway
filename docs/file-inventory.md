@@ -1,6 +1,6 @@
 # 工程文件清单
 
-以下清单记录各版本改动，当前版本为 v0.5.1，并保留历史清单，主分支为 main。构建产物、测试截图、node_modules 和机器路径均被忽略。
+以下清单记录各版本改动，当前版本为 v0.6.0，并保留历史清单，主分支为 main。构建产物、测试截图、node_modules 和机器路径均被忽略。
 
 ## v0.3 新增文件
 
@@ -247,3 +247,33 @@
 - package.json、锁文件、capacitor.config.ts、android/app/build.gradle、页脚和备份元数据：统一为 0.5.1 / code 6，无新增依赖或数据结构迁移。
 - docs/android.md：补充 USB 连接、打包、覆盖安装及启动命令；README 与架构说明同步当前版本。
 - 验证范围与未完成项见 [v0.5.1 验证记录](verification-v0.5.1.md)。
+
+## v0.6 分段交通
+
+- services/routes/transportTypes、transport、transportValidation：交通配置、城市元数据、快照、关系调整与白名单。
+- services/routes/amap、segmentController、segmentView：高德／OSRM 分段适配、调度与候选状态、统一汇总及有效几何。
+- services/amap/client：高德搜索／城市／路线共享队列、取消、合并及错误处理。
+- services/travel/types、model、repository：文档 v3、v1／v2 内存迁移、城市保存、正式交通记录和恢复保护。
+- services/routes/repository、RoutesContext：缓存文档 v2，保留旧整日缓存与控制器。
+- services/backup/model、repository：完整交通备份、恢复清缓存及恢复代次。
+- features/routes/TransportEditor、TransportSummary：分段编辑、候选选择、手动车次、待关联入口及统一汇总；今天／计划／地图接入。
+- features/places/SearchPanel 与 search/amap：地图服务设置、城市字段及共享调度；坐标编辑清除城市信息。
+- transport.test、segmentController.test、amapSegments.test 与已有回归：迁移、关系、备份、失效、队列及晚到响应。
+- package、锁文件、Capacitor、Android、页脚及备份元数据统一 0.6.0 / code 7，无新增依赖。
+- 验证记录：[v0.6.0](verification-v0.6.md)。
+
+## v0.6 体验与兼容调整
+
+- travel/model、repository、types 与 backup/model：机场／车站分类、文档 v4 及旧版本内存迁移、指定地点后插入。
+- routes/transportTypes、transportValidation、transport、segmentView、segmentController 与 TransportEditor / TransportSummary：独立航班、手动记录优先查看、保存并查询留在面板。
+- PlanPage、PlanDaySummary、TravelToolbar、useSessionView：每天折叠、阅读与整理状态、桌面日期选择、连续添加与会话展示状态。
+- PlaceComposer、PlaceEditor、LibraryPicker、PlacesPage：插入目标传递、连续选择反馈与收藏筛选保留。
+- BackHandler、GuardedLink、App、NoteEditor、TodayPage、MapPage、planReturn 与滚动恢复 hook：统一未保存离页确认及按来源返回计划。
+- 对应回归测试与体验验收记录见 experience-v0.6.md；截图与隔离验收脚本仍置于忽略的 artifacts/v0.6/experience-review 目录。
+
+## v0.6 封板收口
+
+- docs/release-v0.6.md：冻结当前功能范围，汇总版本、检查、APK 及设备验收边界，记录后续计划页方向。
+- README、verification-v0.6、experience-v0.6：统一当前旅行文档 v4 说明和封板入口；各阶段验证记录继续保留。
+- src/features/plan/PlanPage.test.tsx：同步已隐藏示例入口的测试预期，通过空状态入口继续验证示例创建与备注保留。
+- 本次不调整业务代码，不自动暂存、提交或推送 Git。

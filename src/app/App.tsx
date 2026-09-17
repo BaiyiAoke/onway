@@ -1,6 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import {
-  NavLink,
   Navigate,
   Route,
   Routes,
@@ -17,12 +16,17 @@ import styles from './App.module.css'
 import { BackHandlerProvider, useBackRegistry } from '../components/BackHandler'
 import { TravelProvider } from '../services/travel/TravelContext'
 import { RoutesProvider } from '../services/routes/RoutesContext'
+import { usePageScroll } from '../components/usePageScroll'
+import {
+  BrowserNavigationGuard,
+  GuardedNavLink,
+} from '../components/GuardedNavigation'
 
 const BackupPage = lazy(() => import('../features/backup/BackupPage'))
 const PlacesPage = lazy(() => import('../features/places/PlacesPage'))
 const MapPage = lazy(() => import('../features/map/MapPage'))
 const links = [
-  { to: '/today', label: '今天', icon: Sun },
+  { to: '/today', label: '总览', icon: Sun },
   { to: '/map', label: '地图', icon: Map },
   { to: '/plan', label: '计划', icon: NotebookPen },
   { to: '/places', label: '地点', icon: Bookmark },
@@ -58,18 +62,18 @@ function AppShell({
   const navigate = useNavigate()
   const [keyboardOpen, setKeyboardOpen] = useState(false)
 
-  useEffect(() => {
-    window.scrollTo(0, 0)
-  }, [location.pathname])
+  usePageScroll()
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return
-    // 页面返回到今天；根页面交给系统退出，不形成空白 WebView 历史页。
+    // 页面返回到总览；根页面交给系统退出，不形成空白 WebView 历史页。
     const listener = NativeApp.addListener('backButton', () => {
-      if (backRegistry.handle()) return
-      if (location.pathname !== '/today')
-        void navigate('/today', { replace: true })
-      else void NativeApp.exitApp()
+      const proceed = () => {
+        if (location.pathname !== '/today')
+          void navigate('/today', { replace: true })
+        else void NativeApp.exitApp()
+      }
+      if (!backRegistry.handle(proceed, 'system')) proceed()
     })
     return () => {
       void listener.then((handle) => handle.remove())
@@ -100,6 +104,7 @@ function AppShell({
 
   return (
     <div className={styles.app}>
+      <BrowserNavigationGuard />
       <a
         className="skipLink"
         href="#main-content"
@@ -111,11 +116,8 @@ function AppShell({
         跳到主要内容
       </a>
       <header className={styles.header}>
-        <NavLink
+        <GuardedNavLink
           to="/today"
-          onClick={(event) => {
-            if (backRegistry.handle()) event.preventDefault()
-          }}
           className={styles.brand}
           aria-label="在途 Onway 首页"
         >
@@ -123,37 +125,28 @@ function AppShell({
           <span>
             onway<span className={styles.brandChinese}>在途</span>
           </span>
-        </NavLink>
+        </GuardedNavLink>
         <nav
           aria-label="主导航"
           className={`${styles.nav} ${keyboardOpen ? styles.keyboardOpen : ''}`}
         >
           {links.map(({ to, label, icon: Icon }) => (
-            <NavLink
+            <GuardedNavLink
               key={to}
               to={to}
-              onClick={(event) => {
-                if (backRegistry.handle()) event.preventDefault()
-              }}
               className={({ isActive }) =>
                 `${styles.navItem} ${isActive ? styles.active : ''}`
               }
             >
               <Icon size={18} />
               <span>{label}</span>
-            </NavLink>
+            </GuardedNavLink>
           ))}
         </nav>
-        <NavLink
-          to="/backup"
-          className={styles.backupLink}
-          onClick={(event) => {
-            if (backRegistry.handle()) event.preventDefault()
-          }}
-        >
+        <GuardedNavLink to="/backup" className={styles.backupLink}>
           <Archive size={17} />
           备份
-        </NavLink>
+        </GuardedNavLink>
       </header>
       <main id="main-content" tabIndex={-1} className={styles.main}>
         <ErrorBoundary key={location.pathname}>
@@ -181,7 +174,7 @@ function AppShell({
         </ErrorBoundary>
       </main>
       <footer className={styles.footer}>
-        <span>Onway 0.5.1</span>
+        <span>Onway 0.6.0</span>
       </footer>
     </div>
   )

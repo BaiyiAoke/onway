@@ -28,10 +28,10 @@ export function AmapButton({ place }: { place: TripPlace }) {
         className="textButton"
         disabled={busy}
         onClick={() => void open()}
-        aria-label={'高德导航到' + place.name}
+        aria-label={'高德驾车导航到' + place.name}
         title="由高德从当前位置规划，实际路线可能与估算不同"
       >
-        <Navigation size={14} /> {busy ? '正在打开…' : '高德导航'}
+        <Navigation size={14} /> {busy ? '正在打开…' : '高德驾车导航'}
       </button>
       {error && (
         <p role="alert" className={styles.failure}>

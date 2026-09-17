@@ -48,7 +48,7 @@ function day(): TripDay {
 }
 function workspace(): TravelWorkspace {
   return {
-    schemaVersion: 2,
+    schemaVersion: 4,
     libraryPlaces: [],
     categories: defaultCategories(),
     activeTripId: 'trip',

@@ -1,3 +1,4 @@
+import { amapJson } from '../amap/client'
 import { getLocalStore } from '../storage'
 import type { LocalStore } from '../storage/types'
 import { parseCoordinates } from '../travel/coordinates'
@@ -32,7 +33,7 @@ export function parseAmapResults(value: unknown): SearchPlace[] {
       : code === '10009'
         ? 'Key 平台不匹配，请使用 Web 服务类型 Key。'
         : ['10001', '10005', '10007', '10008', '10012', '10013'].includes(code)
-          ? '高德 Key 无效、权限不足或安全配置不匹配，请检查搜索设置。'
+          ? '高德 Key 无效、权限不足或安全配置不匹配，请检查地图服务设置。'
           : '高德搜索暂时不可用，请手动重试。'
     throw new Error(message + (code ? '（' + code + '）' : ''))
   }
@@ -72,6 +73,15 @@ export function parseAmapResults(value: unknown): SearchPlace[] {
           note: '',
           coordinates,
           source: { provider: 'amap' as const, id: poi.id },
+          citycode:
+            typeof poi.citycode === 'string' && /^\d{3,4}$/.test(poi.citycode)
+              ? poi.citycode
+              : undefined,
+          adcode:
+            typeof poi.adcode === 'string' && /^\d{6}$/.test(poi.adcode)
+              ? poi.adcode
+              : undefined,
+          cityName: typeof poi.cityname === 'string' ? poi.cityname : undefined,
           sourceUrl: url.href,
         },
       ]
@@ -95,7 +105,7 @@ export class AmapSearch {
       return Promise.reject(new Error('请输入 1–200 字的地点或地址。'))
     if (!/^[a-f\d]{32}$/i.test(key))
       return Promise.reject(
-        new Error('请先在搜索设置中保存有效的高德 Web 服务 Key。'),
+        new Error('请先在地图服务设置中保存有效的高德 Web 服务 Key。'),
       )
     const operation = async () => {
       const check = () => {
@@ -157,9 +167,9 @@ export class AmapSearch {
           page: '1',
           extensions: 'base',
         }).toString()
-        const response = await this.fetcher(url, { signal: controller.signal })
-        if (!response.ok) throw new Error('高德搜索连接失败，请手动重试。')
-        const results = parseAmapResults(await response.json())
+        const results = parseAmapResults(
+          await amapJson(url, controller.signal, this.fetcher),
+        )
         check()
         entries = [
           { query: q, at: Date.now(), results },

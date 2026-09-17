@@ -110,7 +110,9 @@ export default function BackupPage({
       <div className={styles.grid}>
         <section className="card">
           <h2>导出备份</h2>
-          <p className="muted">包含行程、地点顺序、地点库、分类和个人备注。</p>
+          <p className="muted">
+            包含行程、地点顺序、地点库、分类、交通设置、已选方案、车次及个人备注。
+          </p>
           {current && (
             <p>
               {current.trips} 个行程 · {current.libraryPlaces} 个收藏地点 ·{' '}
@@ -142,7 +144,7 @@ export default function BackupPage({
         </section>
       </div>
       <p className={'muted ' + styles.hint}>
-        搜索设置和 Key 留在当前设备。文件不包含搜索与路线缓存，最大 20 MB。
+        地图服务设置和 Key 留在当前设备。文件不包含搜索与路线缓存，最大 20 MB。
       </p>
       {busy && !preview && <p role="status">正在处理文件…</p>}
       {preview && incoming && (
@@ -208,7 +210,7 @@ export default function BackupPage({
               </p>
             )}
             <p>
-              恢复会替换所有行程、收藏地点、分类与个人备注，并清空已计算路线。搜索设置不变。
+              恢复会替换所有行程、收藏地点、分类与个人备注，并清空可重新查询的路线缓存。已选方案和手动车次从备份恢复，地图服务设置不变。
             </p>
             <button
               className="secondaryButton"

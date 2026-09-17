@@ -16,11 +16,14 @@ import {
 import type { LocalStore } from '../../services/storage/types'
 import type { TravelWorkspace } from '../../services/travel/types'
 import type { RouteResult } from '../../services/routes/types'
-import { DayRouteSummary, RouteLeg } from './DayRouteSummary'
+import {
+  LegacyDayRouteSummary as DayRouteSummary,
+  LegacyRouteLeg as RouteLeg,
+} from './DayRouteSummary'
 
 function fixture() {
   const workspace: TravelWorkspace = {
-    schemaVersion: 2,
+    schemaVersion: 4,
     libraryPlaces: [],
     categories: defaultCategories(),
     activeTripId: 'trip',

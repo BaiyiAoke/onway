@@ -100,10 +100,24 @@ describe('个人行程动作', () => {
       placeId: 'a',
       direction: -1,
     })
+    workspace = add(workspace, place('c'), dayId)
+    workspace = applyTravelAction(workspace, {
+      type: 'reorderPlace',
+      tripId,
+      placeId: 'a',
+      direction: 'bottom',
+    })
+    workspace = applyTravelAction(workspace, {
+      type: 'reorderPlace',
+      tripId,
+      placeId: 'c',
+      direction: 'top',
+    })
     workspace = add(workspace, place('a', '新名称'), dayId)
     expect(workspace.trips[0].days[0].places.map((item) => item.id)).toEqual([
-      'a',
+      'c',
       'b',
+      'a',
     ])
     expect(workspace.trips[0].unscheduledPlaces).toEqual([])
     workspace = applyTravelAction(workspace, {
@@ -113,7 +127,59 @@ describe('个人行程动作', () => {
       dayId: null,
     })
     expect(workspace.trips[0].unscheduledPlaces[0].name).toBe('新名称')
-    expect(getGroupPlaces(workspace.trips[0], 'all')).toHaveLength(2)
+    expect(getGroupPlaces(workspace.trips[0], 'all')).toHaveLength(3)
+  })
+
+  it('新地点按指定位置插入，编辑已有点保持原顺序，失效目标明确失败', () => {
+    let workspace = create('插入行程', 2)
+    const tripId = workspace.activeTripId!
+    const dayId = workspace.trips[0].days[0].id
+    workspace = add(add(workspace, place('a'), dayId), place('b'), dayId)
+    workspace = applyTravelAction(workspace, {
+      type: 'savePlace',
+      tripId,
+      dayId,
+      place: place('c'),
+      afterPlaceId: 'a',
+    })
+    expect(workspace.trips[0].days[0].places.map((item) => item.id)).toEqual([
+      'a',
+      'c',
+      'b',
+    ])
+    workspace = applyTravelAction(workspace, {
+      type: 'savePlace',
+      tripId,
+      dayId,
+      place: place('a', '修改名称'),
+      afterPlaceId: 'missing',
+    })
+    expect(workspace.trips[0].days[0].places.map((item) => item.id)).toEqual([
+      'a',
+      'c',
+      'b',
+    ])
+    expect(() =>
+      applyTravelAction(workspace, {
+        type: 'savePlace',
+        tripId,
+        dayId,
+        place: place('d'),
+        afterPlaceId: 'missing',
+      }),
+    ).toThrow('插入位置已改变')
+    expect(() =>
+      applyTravelAction(workspace, {
+        type: 'savePlace',
+        tripId,
+        dayId: workspace.trips[0].days[1].id,
+        place: place('d'),
+        afterPlaceId: 'a',
+      }),
+    ).toThrow('插入位置已改变')
+    expect(getGroupPlaces(workspace.trips[0], 'all')).toHaveLength(3)
+    const appended = add(workspace, place('e'), dayId)
+    expect(appended.trips[0].days[0].places.at(-1)?.id).toBe('e')
   })
 
   it('删除一天将地点按顺序移回未安排，剩余日期重新编号且至少保留一天', () => {

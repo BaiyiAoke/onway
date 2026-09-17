@@ -67,7 +67,11 @@ export class BackupRepository {
       {
         [TRAVEL_WORKSPACE_KEY]: JSON.stringify(document.workspace),
         [NOTE_KEY]: document.personalNote,
-        [ROUTE_CACHE_KEY]: JSON.stringify({ schemaVersion: 1, entries: [] }),
+        [ROUTE_CACHE_KEY]: JSON.stringify({
+          schemaVersion: 2,
+          entries: [],
+          segments: [],
+        }),
         [RESTORE_EPOCH_KEY]: crypto.randomUUID(),
       },
       preview.expected,
