@@ -14,13 +14,20 @@ interface LibraryPickerProps {
   trip: Trip
   dayId: string | null
   afterPlaceId?: string
+  beforePlaceId?: string | null
+  inline?: boolean
   onClose: () => void
 }
 
 export function LibraryPicker(props: LibraryPickerProps) {
   return (
     <LibraryPickerSession
-      key={JSON.stringify([props.trip.id, props.dayId, props.afterPlaceId])}
+      key={JSON.stringify([
+        props.trip.id,
+        props.dayId,
+        props.afterPlaceId,
+        props.beforePlaceId,
+      ])}
       {...props}
     />
   )
@@ -30,6 +37,8 @@ function LibraryPickerSession({
   trip,
   dayId,
   afterPlaceId,
+  beforePlaceId,
+  inline = false,
   onClose,
 }: LibraryPickerProps) {
   const { workspace, run, saving, error } = useTravel()
@@ -108,6 +117,7 @@ function LibraryPickerSession({
         tripId: trip.id,
         dayId,
         afterPlaceId: afterPlaceId === undefined ? undefined : cursor,
+        beforePlaceId,
         allowDuplicate,
       })
       if (ok) {
@@ -124,82 +134,87 @@ function LibraryPickerSession({
       setCopying(false)
     }
   }
-  return (
-    <EditPanel title="从地点库添加" onClose={onClose} busy={busy}>
-      <div className={forms.form}>
-        <p className="muted">
-          添加到：{label}
-          {afterPlaceId !== undefined && ' · 按选择顺序插入'}
+  const content = (
+    <div className={forms.form}>
+      <p className="muted">
+        添加到：{label}
+        {afterPlaceId !== undefined && ' · 按选择顺序插入'}
+      </p>
+      <label>
+        搜索地点库
+        <input
+          autoFocus
+          value={query}
+          disabled={busy}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="地点名称、地址或备注"
+        />
+      </label>
+      <label className={styles.inlineCheck}>
+        <input
+          type="checkbox"
+          checked={allowDuplicate}
+          disabled={busy}
+          onChange={(event) => setAllowDuplicate(event.target.checked)}
+        />
+        允许重复添加同一地点
+      </label>
+      {message && (
+        <p
+          role={failed ? 'alert' : 'status'}
+          className={failed ? 'formError' : undefined}
+        >
+          {failed === 'save' ? (error ?? message) : message}
         </p>
-        <label>
-          搜索地点库
-          <input
-            autoFocus
-            value={query}
-            disabled={busy}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="地点名称、地址或备注"
-          />
-        </label>
-        <label className={styles.inlineCheck}>
-          <input
-            type="checkbox"
-            checked={allowDuplicate}
-            disabled={busy}
-            onChange={(event) => setAllowDuplicate(event.target.checked)}
-          />
-          允许重复添加同一地点
-        </label>
-        {message && (
-          <p
-            role={failed ? 'alert' : 'status'}
-            className={failed ? 'formError' : undefined}
-          >
-            {failed === 'save' ? (error ?? message) : message}
-          </p>
-        )}
-        {!library.length ? (
-          <p className="muted">地点库暂无地点。</p>
-        ) : !matched.length ? (
-          <p className="muted">没有匹配的地点。</p>
-        ) : (
-          <div className={styles.libraryList}>
-            {matched.map((place) => {
-              const joined = addedTo(place)
-              return (
-                <article key={place.id} aria-label={place.name}>
-                  <div>
-                    <strong>{place.name}</strong>
-                    {place.address && <p>{place.address}</p>}
-                    {joined && <p className={styles.joined}>{joined}</p>}
-                  </div>
-                  <button
-                    type="button"
-                    className="secondaryButton"
-                    disabled={busy || (!!joined && !allowDuplicate)}
-                    onClick={() => void copy(place)}
-                  >
-                    {joined ? (allowDuplicate ? '再次加入' : '已加入') : '加入'}
-                  </button>
-                </article>
-              )
-            })}
-          </div>
-        )}
-        <footer className={styles.footer}>
-          <span className="muted" aria-live="polite">
-            本次已加入 {addedCount} 个
-          </span>
-          <button
-            type="button"
-            className="primaryButton"
-            disabled={busy}
-            onClick={onClose}
-          >
-            完成
-          </button>
-        </footer>
-      </div>
+      )}
+      {!library.length ? (
+        <p className="muted">地点库暂无地点。</p>
+      ) : !matched.length ? (
+        <p className="muted">没有匹配的地点。</p>
+      ) : (
+        <div className={styles.libraryList}>
+          {matched.map((place) => {
+            const joined = addedTo(place)
+            return (
+              <article key={place.id} aria-label={place.name}>
+                <div>
+                  <strong>{place.name}</strong>
+                  {place.address && <p>{place.address}</p>}
+                  {joined && <p className={styles.joined}>{joined}</p>}
+                </div>
+                <button
+                  type="button"
+                  className="secondaryButton"
+                  disabled={busy || (!!joined && !allowDuplicate)}
+                  onClick={() => void copy(place)}
+                >
+                  {joined ? (allowDuplicate ? '再次加入' : '已加入') : '加入'}
+                </button>
+              </article>
+            )
+          })}
+        </div>
+      )}
+      <footer className={styles.footer}>
+        <span className="muted" aria-live="polite">
+          本次已加入 {addedCount} 个
+        </span>
+        <button
+          type="button"
+          className="primaryButton"
+          disabled={busy}
+          onClick={onClose}
+        >
+          完成
+        </button>
+      </footer>
+    </div>
+  )
+  return inline ? (
+    content
+  ) : (
+    <EditPanel title="从地点库添加" onClose={onClose} busy={busy}>
+      {content}
     </EditPanel>
   )
 }

@@ -43,7 +43,28 @@ export interface TravelWorkspace {
 
 export type PlaceGroup = 'all' | 'unscheduled' | string
 
+/** 仅用于当前编辑会话的移动撤销，不写入旅行文档。 */
+export interface PlacementSnapshot {
+  days: { id: string; placeIds: string[] }[]
+  unscheduledIds: string[]
+  transport?: TransportRecord[]
+}
+
 export type TravelAction =
+  | {
+      type: 'relocatePlace'
+      tripId: string
+      placeId: string
+      dayId: string | null
+      beforePlaceId: string | null
+      expected: string
+    }
+  | {
+      type: 'restorePlacement'
+      tripId: string
+      placement: PlacementSnapshot
+      expected: string
+    }
   | {
       type: 'saveTransport'
       tripId: string
@@ -66,6 +87,7 @@ export type TravelAction =
       tripId: string
       dayId: string | null
       afterPlaceId?: string
+      beforePlaceId?: string | null
       allowDuplicate?: boolean
     }
   | {
@@ -95,10 +117,12 @@ export type TravelAction =
   | { type: 'deleteDay'; tripId: string; dayId: string }
   | {
       type: 'savePlace'
+      preventDuplicate?: boolean
       tripId: string
       place: TripPlace
       dayId: string | null
       afterPlaceId?: string
+      beforePlaceId?: string | null
     }
   | { type: 'deletePlace'; tripId: string; placeId: string }
   | { type: 'movePlace'; tripId: string; placeId: string; dayId: string | null }

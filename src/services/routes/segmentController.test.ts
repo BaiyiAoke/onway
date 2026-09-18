@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { SegmentController } from './segmentController'
 import { RouteCacheRepository, ROUTE_CACHE_KEY } from './repository'
 import { daySegments, recordForRequest, segmentKey } from './transport'
-import { applyTravelAction } from '../travel/model'
+import { applyTravelAction, placementSnapshot } from '../travel/model'
 import {
   travelFixture,
   optionFixture,
@@ -35,6 +35,35 @@ async function fixture(
   return { controller, w, store, values, service }
 }
 describe('分段任务、自动查询与恢复保护', () => {
+  it('移动和恢复关联都不主动算路，保留独立候选缓存', async () => {
+    vi.useFakeTimers()
+    const f = await fixture(),
+      w = structuredClone(f.w),
+      trip = w.trips[0]
+    const record = recordForRequest(trip, daySegments(trip, trip.days[0])[0])
+    record.config.mode = 'walking'
+    trip.transport = [record]
+    f.controller.updateWorkspace(null, false, false, async () => true)
+    f.controller.updateWorkspace(w, true, false, async () => true)
+    const moved = applyTravelAction(w, {
+      type: 'relocatePlace',
+      tripId: trip.id,
+      placeId: 'a',
+      dayId: 'other',
+      beforePlaceId: null,
+      expected: JSON.stringify(w),
+    })
+    f.controller.updateWorkspace(moved, true, false, async () => true)
+    const restored = applyTravelAction(moved, {
+      type: 'restorePlacement',
+      tripId: trip.id,
+      placement: placementSnapshot(trip),
+      expected: JSON.stringify(moved),
+    })
+    f.controller.updateWorkspace(restored, true, false, async () => true)
+    await vi.advanceTimersByTimeAsync(2000)
+    expect(f.service.calculateSegment).not.toHaveBeenCalled()
+  })
   it.each(['train', 'flight'] as const)(
     '手动方式 %s 保存、单段刷新、全天刷新均不算路',
     async (mode) => {

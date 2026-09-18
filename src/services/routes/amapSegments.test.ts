@@ -1,7 +1,9 @@
 import { afterEach, describe, it, expect, vi } from 'vitest'
 import { AmapSegmentService, parseAmapRoute } from './amap'
 import { AmapQueue, amapJson } from '../amap/client'
-import { daySegments } from './transport'
+import { configFingerprint, daySegments, recordForRequest } from './transport'
+import { transportLines } from './segmentView'
+import { validOption } from './transportValidation'
 import { travelFixture, deferred } from '../../test/transportFixtures'
 afterEach(() => {
   vi.useRealTimers()
@@ -93,6 +95,152 @@ describe('高德结果与坐标边界', () => {
     expect(option.steps).toHaveLength(3)
     expect(option.steps[2].lines).toEqual([])
     expect(option.steps[1].mode).toBe('subway')
+  })
+  it('公交 2.0 的嵌套几何进入已选方案与地图，缺失铁路区间不补线', () => {
+    // 与实网返回保持同一层级：公交及其中的步行把坐标串放在 polyline.polyline。
+    const response = {
+      route: {
+        transits: [
+          {
+            distance: '12000',
+            cost: { duration: '3600' },
+            segments: [
+              {
+                walking: {
+                  steps: [
+                    {
+                      instruction: '步行至车站',
+                      polyline: { polyline: '116.4,39.9;116.401,39.901' },
+                    },
+                  ],
+                },
+              },
+              {
+                bus: {
+                  buslines: [
+                    {
+                      name: '地铁示例线',
+                      type: '地铁线路',
+                      departure_stop: { name: '甲站' },
+                      arrival_stop: { name: '乙站' },
+                      polyline: { polyline: '116.401,39.901;116.41,39.91' },
+                    },
+                    {
+                      name: '备选线路',
+                      polyline: { polyline: '116.5,39.9;116.6,39.91' },
+                    },
+                  ],
+                },
+              },
+              {
+                railway: {
+                  name: '城际列车',
+                  time: '1800',
+                  departure_stop: { name: '乙站' },
+                  arrival_stop: { name: '丙站' },
+                },
+              },
+              {
+                bus: {
+                  buslines: [
+                    {
+                      name: '公交示例线',
+                      type: '普通公交线路',
+                      polyline: { polyline: '116.45,39.95;116.46,39.96' },
+                    },
+                  ],
+                },
+              },
+            ],
+          },
+        ],
+      },
+    }
+    const option = parseAmapRoute(response, 'transit').options[0]
+    expect(validOption(option)).toBe(true)
+    expect(option.steps.map((s) => s.mode)).toEqual([
+      'walking',
+      'subway',
+      'railway',
+      'bus',
+    ])
+    expect(option.steps.map((s) => s.lines.length)).toEqual([1, 1, 0, 1])
+    expect(option.steps[1]).toMatchObject({
+      departureStop: '甲站',
+      arrivalStop: '乙站',
+    })
+    expect(option.durationSeconds).toBe(3600)
+    expect(option.steps[0].lines[0][0][0]).not.toBe(116.4)
+    expect(
+      response.route.transits[0].segments[0].walking!.steps[0].polyline
+        .polyline,
+    ).toBe('116.4,39.9;116.401,39.901')
+
+    const trip = travelFixture().trips[0],
+      day = trip.days[0]
+    const request = daySegments(trip, day)[0],
+      record = recordForRequest(trip, request)
+    record.config = {
+      mode: 'transit',
+      provider: 'amap',
+      strategy: 0,
+      departure: { kind: 'now' },
+    }
+    record.selected = {
+      fingerprint: configFingerprint({ ...request, config: record.config }),
+      option,
+    }
+    trip.transport = [record]
+    const empty = {
+      status: 'ready' as const,
+      entries: {},
+      operations: {},
+      error: null,
+    }
+    const lines = transportLines(empty, empty, trip, day.id)
+    expect(lines.map((line) => line.mode)).toEqual(['walking', 'subway', 'bus'])
+    expect(lines.map((line) => line.entry.result.geometry.coordinates)).toEqual(
+      [
+        option.steps[0].lines[0],
+        option.steps[1].lines[0],
+        option.steps[3].lines[0],
+      ],
+    )
+  })
+  it.each(['driving', 'walking'] as const)(
+    '保留 %s 的字符串坐标格式',
+    (mode) => {
+      const result = parseAmapRoute(body, mode)
+      expect(result.options[0].steps[0].lines[0]).toHaveLength(2)
+      expect(result.options[0].steps[0].mode).toBe(mode)
+    },
+  )
+  it.each([
+    { polyline: '' },
+    { polyline: [] },
+    { polyline: null },
+    { polyline: '116.4,39.9' },
+    { polyline: '116.4,39.9;999,40' },
+    { polyline: '116.4,39.9;,40' },
+    { polyline: '116.4,39.9;116.5, ' },
+  ])('嵌套坐标损坏时保留方案文字而不画线：%j', (polyline) => {
+    const result = parseAmapRoute(
+      {
+        route: {
+          transits: [
+            {
+              distance: '1000',
+              cost: { duration: '600' },
+              segments: [{ bus: { buslines: [{ name: '公交', polyline }] } }],
+            },
+          ],
+        },
+      },
+      'transit',
+    )
+    expect(result.options[0].steps[0].lines).toEqual([])
+    expect(result.options[0].steps[0].instruction).toBe('公交')
+    expect(result.options[0].durationSeconds).toBe(600)
   })
   it('空方案和缺失指标明确报错，畸形几何不会伪造直线', () => {
     expect(() => parseAmapRoute({ route: { paths: [] } }, 'walking')).toThrow(

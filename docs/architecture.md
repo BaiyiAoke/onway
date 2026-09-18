@@ -148,6 +148,28 @@ routes.cache v1 读取迁移为 v2，entries 保存旧整日结果，segments �
 - v1／v2／v3 先按各自规则校验，再在内存中迁移到 v4。原四项公共分类保持，新增机场／车站；同名自定义分类升级为内置并保留 ID，新增分类 ID 避让已有实体。旧交通保留分类和引用，不猜测具体类型。下一次成功保存才写入 v4，SQLite／IndexedDB 表版本不变。
 - TransportMode 增加 flight，flight 与 train 独立保存，二者均不发起路线请求。用户切换类型时可复用端点、号码、时间、备注，原记录不删除；校验、白名单、待关联、日期核对与全天汇总同步覆盖。
 - savePlace / copyToTrip 的可选 afterPlaceId 仅控制新地点插入位置；指定目标必须属于目标分组且仍存在，否则拒绝保存。编辑已有地点不移动顺序。地点库连续加入通过最新工作区识别新副本 ID 后推进插入位置。
-- PlanDaySummary 只读完整当天交通状态；折叠不计算路线，未完成、失败、待确认与距离未知仍可见。计划默认阅读，排序日期控件在整理状态显示。桌面日期下拉与前后切换、手机日期条共用 group。
+- PlanDaySummary 只读完整当天交通状态；折叠不计算路线，未完成、失败、待确认与距离未知仍可见。v0.6 封板时计划默认阅读，整理状态显示排序日期控件；当前编排调整见下一节。地图页继续使用 group 筛选。
 - useSessionView 将日期展开、收藏关键词与分类放在 sessionStorage；列表/网格仍沿用 LocalStore 的 ui.places.view。展示状态均不进旅行文档或备份。
 - GuardedLink / GuardedNavLink 与 BackHandler 传递待继续的导航；NoteEditor 确认后才执行原目标，保存失败保留输入。planReturn 只携带 tripId、dayId、placeId，返回后读取当前文档定位地点；地图本身按目标所属天展示。普通页面滚动按会话保存，明确地点锚点优先。
+
+## 计划页编排调整（基于 v0.6.0，未发布）
+
+- PlanPage 的编排会话按行程与路由进入标识重建。日期控件用于定位、展开，不过滤其他天；初始优先显式 planReturn、上次编辑日、行程中的今天、首日。ui.plan.focus.* 与 ui.plan.expanded.* 仅保存在 sessionStorage。
+- 顶部合并行程工具栏，创建入口位于行程切换。日期标题负责选中与地图联动，箭头仅折叠；两种展示动作都不写旅行文档。
+- 桌面 1024px 起左侧行程、右侧停靠地图；地图范围控件位于画布内，添加面板覆盖其一侧并保留地图实例；窄屏地图使用 EditPanel 的 fullscreen 变体，保留原页滚动、焦点和返回处理。添加面板明确保存 dayId 与 beforePlaceId，左侧选中日期和地图位置不会隐式改变它。
+- PlanDrag 使用固定版本 @dnd-kit/react、@dnd-kit/dom 0.5.0，仅地点手柄可发起拖动。鼠标移动 8px 激活；触摸长按 250ms、8px 容差；键盘按插入位置移动，支持 Esc／返回取消。悬停日期 600ms 临时展开；标题为末尾放置目标，取消恢复原展开状态。拖动只产生展示状态，放下后单次提交。
+- relocatePlace 使用 tripId、placeId、dayId、beforePlaceId 与完整工作区 expected 快照。模型先验证快照及目标，再移动并调整交通关系；仓库沿用串行队列、原始快照和恢复代次条件写入。原位移动不写盘，失败不发布新顺序。movePlace、reorderPlace 和 afterPlaceId 旧接口保留。
+- usePlacement 只在内存保留最后成功移动的地点排列和完整交通快照。restorePlacement 恢复原有关联、已选方案、车次、航班、待确认与待关联状态；任何后续文档变化、切换行程、离页或恢复都会结束撤销。缓存独立，不回滚。成功返回和 Context 采用快照可能不同帧，令牌等待正确快照采用后才判断后续编辑。
+- savePlace 与 copyToTrip 新增 beforePlaceId，null 表示末尾，不能与 afterPlaceId 同时指定；失效锚点拒绝保存。搜索快速添加显式启用 preventDuplicate，原保存调用保持兼容。SearchPanel 提供候选操作插槽；LibraryPicker 提供 inline 形式，仍复用相同重复保护和持久化逻辑。
+- TravelMap 统一管理 MapLibre 实例、标记、有效路线几何、ResizeObserver、错误与重试。计划地图仅在显式选点时提供 onPick；原 MapPage 继续保留空白点新增和地点清单定位行为。普通编辑、排序和缓存更新不重建或重新适配视野；地图／添加面板切换保留桌面地图实例。
+- RouteLeg 在计划页采用受控展开，一次只出现一组快捷方式；当天汇总仍覆盖完整当天。新增、移动、撤销、折叠和地图显示不会自动算路，原交通配置变更与手动刷新行为保持。
+
+本轮不升级旅行文档 v4、缓存 v2、备份 v1 或数据库结构，也不改变发布版本号。自动及浏览器验证见 [编排验证记录](verification-planner.md) 和 [布局调整验证](verification-planner-layout.md)，Android 真机验收由用户安装后完成。
+
+## 计划页底图适配（2026-09-18）
+
+PlanPage 通过 PlanMap 按设备配置懒加载 AmapTravelMap 或原 TravelMap。高德采用官方 JS API 2.0 loader，地图实例只在挂载、重试或更换配置时建立；日期及路线更新只更新覆盖物。AMap 侧坐标为 GCJ-02，旅行文档和路线缓存继续使用 WGS84。
+
+底图设置 map.plan.settings.v1 与搜索的 search.provider.v1 独立；JS API Key 和 securityJsCode 不复用 Web 服务 Key。设备配置优先于私有构建环境变量，无完整配置时默认原底图。配置不进入备份。SDK 是页面单例，在途更换密钥需显式重开页面，避免旧脚本污染新配置。
+
+整块 dayDrop 摘要支持选日，内部折叠／添加按钮独立；选日和底图交互均不查询路线。详细验证见 [计划选日与高德底图验证](verification-planner-amap.md)。

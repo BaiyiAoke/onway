@@ -149,3 +149,15 @@
 .backupLink:hover {
   background: var(--surface-subtle);
 }
+
+/* 编排页的导航与工作区共用宽度，其他页面保留原来的阅读宽度。 */
+@media (min-width: 701px) {
+  .plannerShell .header {
+    min-height: 72px;
+    padding: calc(12px + var(--safe-top)) max(32px, calc((100vw - 1416px) / 2))
+      12px;
+  }
+  .plannerShell .footer {
+    max-width: 1480px;
+  }
+}

@@ -55,6 +55,13 @@
   background: var(--brand-050);
   border-color: var(--brand-400);
 }
+.mapToolbar {
+  position: absolute;
+  z-index: 2;
+  top: 15px;
+  left: 15px;
+  right: 70px;
+}
 .loading,
 .error,
 .hint {
@@ -67,8 +74,20 @@
   padding: 16px;
   font-size: var(--text-sm);
 }
+.loading {
+  top: auto;
+  bottom: 38px;
+  right: auto;
+  width: fit-content;
+  max-width: calc(100% - 85px);
+  padding: 8px 12px;
+}
 .error {
-  top: 80px;
+  z-index: 3;
+  top: 50%;
+  transform: translateY(-50%);
+  max-width: 340px;
+  margin-inline: auto;
   right: 17px;
   box-shadow: var(--shadow-float);
 }
@@ -348,4 +367,56 @@
 }
 .returnLink:hover {
   color: var(--text-primary);
+}
+
+/* 计划页底图切换与高德控件；保留服务商自己的版权标识。 */
+.providerMap {
+  position: relative;
+  min-width: 0;
+}
+.providerSettings {
+  position: absolute;
+  z-index: 4;
+  top: 70px;
+  right: 15px;
+  display: grid;
+  place-items: center;
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+.providerSettings:hover {
+  background: var(--brand-050);
+  border-color: var(--brand-400);
+}
+.zoomControls {
+  position: absolute;
+  right: 15px;
+  bottom: 32px;
+  display: grid;
+  background: var(--surface-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.zoomControls button {
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 0;
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
+  color: var(--text-primary);
+}
+.zoomControls button + button {
+  border-top: 1px solid var(--border-subtle);
+}
+.zoomControls button:hover:not(:disabled) {
+  background: var(--brand-050);
+}
+.amapCanvas :global(.amap-info-content) {
+  max-width: min(280px, calc(100vw - 80px));
+  border-radius: var(--radius-sm);
 }

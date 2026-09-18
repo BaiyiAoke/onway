@@ -16,6 +16,7 @@ export function PlaceComposer({
   trip,
   dayId = null,
   afterPlaceId,
+  beforePlaceId,
   onClose,
 }: {
   mode: 'manual' | 'search' | 'map'
@@ -23,6 +24,7 @@ export function PlaceComposer({
   trip?: Trip
   dayId?: string | null
   afterPlaceId?: string
+  beforePlaceId?: string | null
   onClose: () => void
 }) {
   const [draft, setDraft] = useState<PlaceDraft | null>(() =>
@@ -99,6 +101,7 @@ export function PlaceComposer({
             trip={trip}
             draft={draft}
             afterPlaceId={insertAfter}
+            beforePlaceId={beforePlaceId}
             onSaved={(placeId, savedDayId) => {
               if (afterPlaceId && savedDayId === dayId) setInsertAfter(placeId)
             }}

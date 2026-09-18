@@ -36,10 +36,14 @@ export function PlaceEditor({
   onClose,
   onPickLocation,
   afterPlaceId,
+  beforePlaceId,
   onSaved,
+  preventDuplicate = false,
 }: {
   trip?: Trip
   afterPlaceId?: string
+  beforePlaceId?: string | null
+  preventDuplicate?: boolean
   onSaved?: (placeId: string, dayId: string | null) => void
   draft: PlaceDraft
   onClose: () => void
@@ -119,10 +123,15 @@ export function PlaceEditor({
       address: place.address?.trim(),
     }
     if (
-      !trip &&
       !original &&
       !allowDuplicate &&
-      workspace?.libraryPlaces.some((item) => samePlace(item, normalized))
+      (trip
+        ? preventDuplicate &&
+          [
+            ...trip.days.flatMap((d) => d.places),
+            ...trip.unscheduledPlaces,
+          ].some((item) => samePlace(item, normalized))
+        : workspace?.libraryPlaces.some((item) => samePlace(item, normalized)))
     ) {
       setDuplicate(true)
       return
@@ -134,6 +143,9 @@ export function PlaceEditor({
             tripId: trip.id,
             dayId,
             place: normalized,
+            preventDuplicate: preventDuplicate && !allowDuplicate,
+            beforePlaceId:
+              !original && dayId === draft.dayId ? beforePlaceId : undefined,
             afterPlaceId:
               !original && dayId === draft.dayId ? afterPlaceId : undefined,
           }
@@ -226,14 +238,21 @@ export function PlaceEditor({
                     )
                   : '未安排'}{' '}
                 ·
-                {afterPlaceId && form.dayId === draft.dayId
-                  ? ' 在“' +
+                {beforePlaceId && form.dayId === draft.dayId
+                  ? ' 插入到「' +
                     [
-                      ...trip.days.flatMap((day) => day.places),
-                      ...trip.unscheduledPlaces,
-                    ].find((place) => place.id === afterPlaceId)?.name +
-                    '”之后插入'
-                  : ' 添加到末尾'}
+                      ...trip!.days.flatMap((d) => d.places),
+                      ...trip!.unscheduledPlaces,
+                    ].find((p) => p.id === beforePlaceId)?.name +
+                    '」之前'
+                  : afterPlaceId && form.dayId === draft.dayId
+                    ? ' 在“' +
+                      [
+                        ...trip.days.flatMap((day) => day.places),
+                        ...trip.unscheduledPlaces,
+                      ].find((place) => place.id === afterPlaceId)?.name +
+                      '”之后插入'
+                    : ' 添加到末尾'}
               </p>
             )}
             <label>
@@ -394,7 +413,9 @@ export function PlaceEditor({
             {error && <TravelSaveFeedback message={error} tripId={trip?.id} />}
             {duplicate && (
               <div role="status">
-                <p>地点库已包含这个地点。</p>
+                <p>
+                  {trip ? '此行程已包含这个地点。' : '地点库已包含这个地点。'}
+                </p>
                 <button
                   type="button"
                   className="secondaryButton"

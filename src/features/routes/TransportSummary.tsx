@@ -142,11 +142,15 @@ export function RouteLeg({
   day,
   toIndex,
   variant = 'planner',
+  selected,
+  onSelect,
 }: {
   tripId: string
   day: TripDay
   toIndex: number
   variant?: 'planner' | 'compact'
+  selected?: boolean
+  onSelect?: () => void
 }) {
   const { workspace, run, saving } = useTravel(),
     { segments } = useRoutes()
@@ -217,15 +221,20 @@ export function RouteLeg({
     : ''
   return (
     <div
-      className={`${styles.segment} ${variant === 'compact' ? styles.segmentCompact : ''}`}
+      className={`${styles.segment} ${variant === 'compact' || selected === false ? styles.segmentCompact : ''}`}
     >
       <button
         type="button"
         className={styles.segmentButton}
         onClick={() => {
+          if (onSelect) {
+            onSelect()
+            return
+          }
           setInitialMode(undefined)
           setOpened(true)
         }}
+        aria-expanded={onSelect ? selected : undefined}
         aria-label={
           '交通：' + segmentRequest.from.name + '到' + segmentRequest.to.name
         }
@@ -253,8 +262,19 @@ export function RouteLeg({
         </span>
         <ArrowRight size={15} />
       </button>
-      {variant === 'planner' && (
+      {variant === 'planner' && selected !== false && (
         <div className={styles.segmentQuick} aria-label="快速选择交通方式">
+          {onSelect && (
+            <button
+              type="button"
+              onClick={() => {
+                setInitialMode(undefined)
+                setOpened(true)
+              }}
+            >
+              交通详情
+            </button>
+          )}
           <button
             type="button"
             disabled={saving}

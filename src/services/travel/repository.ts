@@ -335,6 +335,11 @@ export class TravelRepository {
         }
         const next = applyTravelAction(this.snapshot!, action)
         const raw = JSON.stringify(next)
+        if (
+          action.type === 'relocatePlace' &&
+          raw === JSON.stringify(this.snapshot)
+        )
+          return structuredClone(next)
         parseWorkspace(raw)
         if (isAtomicStore(store)) {
           await store.writeBatch(

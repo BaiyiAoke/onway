@@ -91,3 +91,14 @@
     }
   }
 }
+
+/* 计划页地图在小屏内展开，仍沿用对话框的焦点和返回处理。 */
+.panel.fullscreen {
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  max-height: 100dvh;
+  margin: 0;
+  border-radius: 0;
+  padding: calc(18px + var(--safe-top)) 18px calc(18px + var(--safe-bottom));
+}

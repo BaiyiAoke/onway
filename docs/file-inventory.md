@@ -277,3 +277,56 @@
 - README、verification-v0.6、experience-v0.6：统一当前旅行文档 v4 说明和封板入口；各阶段验证记录继续保留。
 - src/features/plan/PlanPage.test.tsx：同步已隐藏示例入口的测试预期，通过空状态入口继续验证示例创建与备注保留。
 - 本次不调整业务代码，不自动暂存、提交或推送 Git。
+
+## 计划页编排调整（基于 v0.6.0，未发布）
+
+- `README.md`
+- `docs/architecture.md`
+- `docs/file-inventory.md`
+- `docs/verification-planner.md`
+- `package-lock.json`
+- `package.json`
+- `src/components/EditPanel.module.css`
+- `src/components/EditPanel.tsx`
+- `src/features/map/MapPage.tsx`
+- `src/features/map/TravelMap.tsx`
+- `src/features/places/LibraryPicker.tsx`
+- `src/features/places/PlaceComposer.tsx`
+- `src/features/places/SearchPanel.tsx`
+- `src/features/plan/Plan.module.css`
+- `src/features/plan/PlanAddPanel.tsx`
+- `src/features/plan/PlanDrag.tsx`
+- `src/features/plan/PlanPage.test.tsx`
+- `src/features/plan/PlanPage.tsx`
+- `src/features/plan/TripEditor.tsx`
+- `src/features/plan/usePlacement.test.tsx`
+- `src/features/plan/usePlacement.ts`
+- `src/features/routes/TransportSummary.tsx`
+- `src/features/today/TodayPage.tsx`
+- `src/features/travel/PlaceEditor.tsx`
+- `src/services/routes/segmentController.test.ts`
+- `src/services/travel/model.ts`
+- `src/services/travel/placement.test.ts`
+- `src/services/travel/repository.ts`
+- `src/services/travel/types.ts`
+
+## 编排布局收紧（2026-09-18，未发布）
+
+- PlanPage、Plan.module.css、PlanDaySummary 与 PlanPage.test：合并工具栏、左右密度、日期选择与折叠分离、地图覆盖添加面板。
+- TravelMap、Map.module.css：工具栏插槽与地图状态。
+- App、App.module.css：仅计划页统一页边距与导航宽度。
+- docs/verification-planner-layout.md：本轮自动、布局、实网底图及 APK 验证；旧编排记录保留。
+
+## 计划整块选日与高德底图（2026-09-18，未发布）
+
+- PlanDrag、PlanPage、Plan.module.css、PlanPage.test：整块日期摘要可选日，保留内部操作。
+- features/map/PlanMap、AmapTravelMap、AmapTravelMap.test、TravelMap、Map.module.css：底图选择、设备设置、高德显示及交互、共用契约。
+- services/maps/settings、settings.test、amap、amap.test：独立配置、SDK 单例、坐标转换与回归。
+- package.json、package-lock.json、.env.example：官方依赖与构建配置示例。
+- docs/architecture.md、docs/verification-planner-amap.md：实现边界、修改清单及验证证据。
+
+## 公共交通线路修复（2026-09-18，未发布）
+
+- src/services/routes/amap.ts：兼容公交 2.0 嵌套坐标串，保留自驾／步行格式及缺失几何处理。
+- src/services/routes/amapSegments.test.ts：真实响应层级、地图几何与异常坐标回归。
+- docs/verification-transit-geometry.md：复现、自动检查、实网公交绘制及旧方案更新方式。

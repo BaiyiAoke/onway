@@ -18,6 +18,14 @@ import { NOTE_KEY, type LocalStore } from '../../services/storage/types'
 import type { TravelWorkspace } from '../../services/travel/types'
 import { PlanPage } from './PlanPage'
 
+vi.hoisted(() => {
+  // jsdom 没有布局观察器；真实拖拽几何在独立浏览器验证。
+  globalThis.ResizeObserver = class {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+})
 beforeEach(() => sessionStorage.clear())
 
 beforeAll(() => {
@@ -104,7 +112,6 @@ async function openPlan(repository: TravelRepository, expanded = true) {
   await screen.findByRole('button', { name: '全部展开' })
   if (expanded) {
     fireEvent.click(screen.getByRole('button', { name: '全部展开' }))
-    fireEvent.click(screen.getByRole('button', { name: '调整顺序与日期' }))
   }
   return view
 }
@@ -140,6 +147,7 @@ describe('计划页的行程操作', () => {
       ).queryByRole('button', { name: /^交通：/ }),
     ).not.toBeInTheDocument()
 
+    fireEvent.click(screen.getByRole('button', { name: '移动我保存的第一站' }))
     fireEvent.click(screen.getByRole('button', { name: '置底我保存的第一站' }))
     await waitFor(() =>
       expect(read().trips[0].days[0].places.map((p) => p.id)).toEqual([
@@ -224,8 +232,9 @@ describe('计划页的行程操作', () => {
     fireEvent.click(
       screen.getByRole('button', { name: '第 2 天 · 10 月 1 日' }),
     )
-    fireEvent.click(screen.getByRole('button', { name: '地点库添加' }))
-    const dialog = screen.getByRole('dialog', { name: '从地点库添加' })
+    fireEvent.click(screen.getByRole('button', { name: '添加地点' }))
+    const dialog = screen.getByRole('dialog', { name: '添加地点' })
+    fireEvent.click(within(dialog).getByRole('button', { name: '地点库' }))
     expect(dialog).toHaveTextContent('添加到：第 2 天 · 10 月 1 日')
     fireEvent.click(within(dialog).getByRole('button', { name: '加入' }))
     await waitFor(() =>
@@ -287,6 +296,7 @@ describe('计划页的行程操作', () => {
       name: '第 1 天 · 9 月 30 日',
     })
     const firstDay = firstDayHeading.closest('section')!
+    fireEvent.click(within(firstDay).getByText('当天交通与日期操作'))
     fireEvent.click(
       within(firstDay).getByRole('button', { name: '删除这一天' }),
     )
@@ -327,6 +337,7 @@ describe('计划页的行程操作', () => {
     const { store, repository, read } = fixture()
     await openPlan(repository)
     await screen.findByRole('heading', { name: '已经安排好的旅行' })
+    fireEvent.click(screen.getByRole('button', { name: '行程更多操作' }))
     fireEvent.click(screen.getByRole('button', { name: '编辑行程' }))
     const dialog = screen.getByRole('dialog', { name: '编辑行程' })
     fireEvent.change(
@@ -383,38 +394,83 @@ vi.mock('../../services/routes/RoutesContext', () => ({
   }),
 }))
 
-describe('每日折叠与连续规划', () => {
-  it('全部默认仅显示摘要，展开状态跨页面保留，展开和整理不保存数据', async () => {
+describe('每日定位与编排', () => {
+  it('日期摘要的空白及统计区域均可选日，折叠按钮不触发选日', async () => {
+    const { repository, store } = fixture()
+    await openPlan(repository, false)
+    const locator = screen.getByRole('combobox', { name: '选择日期' })
+    const second = screen
+      .getByRole('heading', { name: '第 2 天 · 10 月 1 日' })
+      .closest('section')!
+    fireEvent.click(within(second).getByText('1 个地点'))
+    expect(locator).toHaveValue('day-second')
+    fireEvent.click(
+      screen.getByRole('button', { name: '收起第 1 天 · 9 月 30 日' }),
+    )
+    expect(locator).toHaveValue('day-second')
+    const first = screen
+      .getByRole('heading', { name: '第 1 天 · 9 月 30 日' })
+      .closest('section')!
+    fireEvent.click(first.querySelector('[data-plan-drop]')!)
+    expect(locator).toHaveValue('day-first')
+    fireEvent.click(screen.getByText('0 个地点 · 可拖入某一天'))
+    expect(locator).toHaveValue('unscheduled')
+    expect(store.set).not.toHaveBeenCalled()
+  })
+
+  it('折叠只改变显示，点击日期标题才选中日期；这些操作不保存文档', async () => {
+    const { repository, store } = fixture()
+    await openPlan(repository, false)
+    const locator = screen.getByRole('combobox', { name: '选择日期' })
+    fireEvent.click(
+      screen.getByRole('button', { name: '展开第 2 天 · 10 月 1 日' }),
+    )
+    expect(locator).toHaveValue('day-first')
+    fireEvent.click(
+      screen.getByRole('button', { name: '第 2 天 · 10 月 1 日' }),
+    )
+    expect(locator).toHaveValue('day-second')
+    fireEvent.click(
+      screen.getByRole('button', { name: '收起第 1 天 · 9 月 30 日' }),
+    )
+    expect(locator).toHaveValue('day-second')
+    expect(
+      screen.getByRole('button', { name: '第 2 天 · 10 月 1 日' }),
+    ).toHaveAttribute('aria-pressed', 'true')
+    expect(store.set).not.toHaveBeenCalled()
+  })
+  it('行程切换中的创建入口打开编辑器，取消保留当前行程', async () => {
+    const { repository, store } = fixture()
+    await openPlan(repository, false)
+    fireEvent.change(screen.getByRole('combobox', { name: '当前行程' }), {
+      target: { value: '__create_trip__' },
+    })
+    const dialog = screen.getByRole('dialog', { name: '创建行程' })
+    fireEvent.click(within(dialog).getByRole('button', { name: '取消' }))
+    expect(screen.getByRole('combobox', { name: '当前行程' })).toHaveValue(
+      'trip-existing',
+    )
+    expect(store.set).not.toHaveBeenCalled()
+  })
+
+  it('首次展开当前日，其他日期保留摘要；展开和移动菜单不写数据', async () => {
     const { repository, store } = fixture()
     const view = await openPlan(repository, false)
-    expect(
-      screen.queryByRole('heading', { name: '我保存的第一站' }),
-    ).not.toBeInTheDocument()
-    expect(
-      screen.getByRole('button', { name: '展开第 1 天 · 9 月 30 日' }),
-    ).toHaveAttribute('aria-expanded', 'false')
-    fireEvent.click(
-      screen.getByRole('button', { name: '展开第 1 天 · 9 月 30 日' }),
-    )
     expect(
       screen.getByRole('heading', { name: '我保存的第一站' }),
     ).toBeVisible()
     expect(
       screen.queryByRole('heading', { name: '我保存的第二站' }),
     ).not.toBeInTheDocument()
-    expect(
-      screen.queryByRole('button', { name: '置底我保存的第一站' }),
-    ).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: '调整顺序与日期' }))
+    fireEvent.click(screen.getByRole('button', { name: '移动我保存的第一站' }))
     expect(
       screen.getByRole('button', { name: '置底我保存的第一站' }),
     ).toBeVisible()
+    fireEvent.click(
+      screen.getByRole('button', { name: '展开第 2 天 · 10 月 1 日' }),
+    )
     view.unmount()
     await openPlan(repository, false)
-    expect(
-      screen.getByRole('heading', { name: '我保存的第一站' }),
-    ).toBeVisible()
-    fireEvent.click(screen.getByRole('button', { name: '全部展开' }))
     expect(
       screen.getByRole('heading', { name: '我保存的第二站' }),
     ).toBeVisible()
@@ -422,45 +478,67 @@ describe('每日折叠与连续规划', () => {
     expect(
       screen.queryByRole('heading', { name: '我保存的第一站' }),
     ).not.toBeInTheDocument()
-    expect(store.set).not.toHaveBeenCalled()
-  })
-  it('单独选择一天立即展示地点，末尾添加默认归入当天', async () => {
-    const { repository, store } = fixture()
-    await openPlan(repository, false)
-    fireEvent.change(screen.getByRole('combobox', { name: '选择日期' }), {
-      target: { value: 'day-second' },
-    })
-    expect(
-      screen.getByRole('heading', { name: '我保存的第二站' }),
-    ).toBeVisible()
-    expect(
-      screen.queryByRole('button', { name: '全部展开' }),
-    ).not.toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: '下一天' }))
-    expect(screen.getByRole('button', { name: '下一天' })).toBeDisabled()
-    fireEvent.click(screen.getByRole('button', { name: '上一天' }))
+    fireEvent.click(screen.getByRole('button', { name: '全部展开' }))
     expect(
       screen.getByRole('heading', { name: '我保存的第一站' }),
     ).toBeVisible()
     expect(store.set).not.toHaveBeenCalled()
   })
-  it('从中间站输入坐标新增后插入原位置，已有后续站点顺序不变', async () => {
+  it('日期选择定位并展开，不隐藏其他天；显式跳转优先于记忆', async () => {
+    const { repository, store } = fixture()
+    const view = await openPlan(repository, false)
+    fireEvent.change(screen.getByRole('combobox', { name: '选择日期' }), {
+      target: { value: 'day-second' },
+    })
+    expect(
+      screen.getByRole('heading', { name: '我保存的第一站' }),
+    ).toBeVisible()
+    expect(
+      screen.getByRole('heading', { name: '我保存的第二站' }),
+    ).toBeVisible()
+    expect(screen.getByRole('button', { name: '下一天' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: '全部展开' })).toBeVisible()
+    view.unmount()
+    render(
+      <MemoryRouter
+        initialEntries={[
+          {
+            pathname: '/plan',
+            state: {
+              planReturn: {
+                tripId: 'trip-existing',
+                dayId: 'day-first',
+                placeId: 'place-first',
+              },
+            },
+          },
+        ]}
+      >
+        <TravelProvider repository={repository}>
+          <PlanPage />
+        </TravelProvider>
+      </MemoryRouter>,
+    )
+    await screen.findByRole('heading', { name: '我保存的第一站' })
+    expect(screen.getByRole('combobox', { name: '选择日期' })).toHaveValue(
+      'day-first',
+    )
+    expect(store.set).not.toHaveBeenCalled()
+  })
+  it('在相邻地点间添加坐标，连续添加面板保留原目标', async () => {
     const { repository, read } = fixture((w) => {
       const day = w.trips[0].days[0]
       day.places.push({ ...day.places[0], id: 'tail', name: '末站' })
     })
     await openPlan(repository, false)
-    fireEvent.change(screen.getByRole('combobox', { name: '选择日期' }), {
-      target: { value: 'day-first' },
-    })
     fireEvent.click(
-      screen.getByRole('button', { name: '我保存的第一站的更多操作' }),
+      screen.getByRole('button', { name: '在「末站」之前添加地点' }),
     )
-    fireEvent.click(screen.getByRole('button', { name: '在此后添加' }))
-    const picker = screen.getByRole('dialog', { name: '在此后添加地点' })
+    const picker = screen.getByRole('dialog', { name: '添加地点' })
+    expect(picker).toHaveTextContent('插入到「末站」之前')
     fireEvent.click(within(picker).getByRole('button', { name: '输入坐标' }))
     const editor = screen.getByRole('dialog', { name: '添加行程地点' })
-    expect(editor).toHaveTextContent('我保存的第一站”之后插入')
+    expect(editor).toHaveTextContent('插入到「末站」之前')
     fireEvent.change(
       within(editor).getByRole('textbox', { name: '地点名称' }),
       { target: { value: '中间新站' } },
@@ -473,13 +551,61 @@ describe('每日折叠与连续规划', () => {
     })
     fireEvent.click(within(editor).getByRole('button', { name: '保存地点' }))
     await waitFor(() =>
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument(),
+      expect(
+        screen.queryByRole('dialog', { name: '添加行程地点' }),
+      ).not.toBeInTheDocument(),
     )
     expect(read().trips[0].days[0].places.map((p) => p.name)).toEqual([
       '我保存的第一站',
       '中间新站',
       '末站',
     ])
-    expect(screen.getAllByRole('button', { name: /^交通：/ })).toHaveLength(2)
+    expect(picker).toHaveTextContent('插入到「末站」之前')
+  })
+  it('只展开一段的交通快捷方式，重复点选当前方式不保存', async () => {
+    const { repository, store } = fixture((w) => {
+      const d = w.trips[0].days[0]
+      d.places.push(
+        { ...d.places[0], id: 'middle', name: '中站' },
+        { ...d.places[0], id: 'tail', name: '末站' },
+      )
+    })
+    await openPlan(repository, false)
+    expect(
+      screen.queryByRole('button', { name: '步行' }),
+    ).not.toBeInTheDocument()
+    const legs = screen.getAllByRole('button', { name: /^交通：/ })
+    fireEvent.click(legs[0])
+    expect(screen.getAllByRole('button', { name: '步行' })).toHaveLength(1)
+    fireEvent.click(screen.getByRole('button', { name: '自驾' }))
+    expect(store.set).not.toHaveBeenCalled()
+    fireEvent.click(legs[1])
+    expect(legs[0]).toHaveAttribute('aria-expanded', 'false')
+    expect(legs[1]).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getAllByRole('button', { name: '步行' })).toHaveLength(1)
+  })
+  it('成功移动可撤销，后续编辑使撤销失效', async () => {
+    const { repository, read } = fixture()
+    await openPlan(repository, false)
+    fireEvent.click(screen.getByRole('button', { name: '移动我保存的第一站' }))
+    fireEvent.change(
+      screen.getByRole('combobox', { name: '移动我保存的第一站到' }),
+      { target: { value: 'day-second' } },
+    )
+    await waitFor(() => expect(read().trips[0].days[1].places).toHaveLength(2))
+    expect(screen.getByRole('button', { name: '撤销移动' })).toBeEnabled()
+    fireEvent.click(screen.getByRole('button', { name: '撤销移动' }))
+    await waitFor(() => expect(read().trips[0].days[0].places).toHaveLength(1))
+    expect(screen.getByRole('button', { name: '撤销移动' })).toBeDisabled()
+    fireEvent.change(
+      screen.getByRole('combobox', { name: '移动我保存的第一站到' }),
+      { target: { value: 'day-second' } },
+    )
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: '撤销移动' })).toBeEnabled(),
+    )
+    fireEvent.click(screen.getByRole('button', { name: '追加一天' }))
+    await waitFor(() => expect(read().trips[0].days).toHaveLength(3))
+    expect(screen.getByRole('button', { name: '撤销移动' })).toBeDisabled()
   })
 })

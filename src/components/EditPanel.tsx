@@ -16,12 +16,14 @@ export function EditPanel({
   onClose,
   dirty = false,
   busy = false,
+  fullscreen = false,
 }: {
   title: string
   children: ReactNode | ((requestClose: () => boolean) => ReactNode)
   onClose: () => void
   dirty?: boolean
   busy?: boolean
+  fullscreen?: boolean
 }) {
   const dialog = useRef<HTMLDialogElement>(null)
   const titleId = useId()
@@ -64,7 +66,7 @@ export function EditPanel({
   return (
     <dialog
       ref={dialog}
-      className={styles.panel}
+      className={styles.panel + (fullscreen ? ' ' + styles.fullscreen : '')}
       aria-labelledby={titleId}
       onCancel={(event) => {
         event.preventDefault()

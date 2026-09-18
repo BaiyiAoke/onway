@@ -12,28 +12,31 @@ export function PlanDaySummary({ trip, day }: { trip: Trip; day: TripDay }) {
   const review = total.views.filter((v) => v.needsReview).length
   const failed = total.views.filter((v) => v.operation?.error).length
   return (
-    <p className={styles.dayPreview}>
-      <span>{day.places.length} 个地点</span>
-      {legacy ? (
-        <span>旧版自驾约 {formatDuration(legacy.durationSeconds)}</span>
-      ) : (
-        total.completed > 0 && (
-          <span>
-            {total.completed < total.total ? '已知交通约 ' : '交通约 '}
+    <div className={styles.dayPreview}>
+      <p>
+        {day.places.length} 个地点
+        {legacy ? (
+          <> · 旧版自驾约 {formatDuration(legacy.durationSeconds)}</>
+        ) : total.completed > 0 ? (
+          <>
+            {' '}
+            · {total.completed < total.total ? '已知交通约 ' : '交通约 '}
             {formatDuration(total.durationSeconds)}
+          </>
+        ) : null}
+      </p>
+      <p className={styles.summaryStatus}>
+        {!legacy && total.total > 0 && total.completed < total.total && (
+          <span>
+            {total.completed} / {total.total} 段有结果
           </span>
-        )
-      )}
-      {!legacy && total.total > 0 && (
-        <span>
-          {total.completed} / {total.total} 段有结果
-        </span>
-      )}
-      {review > 0 && <span>{review} 段待确认</span>}
-      {failed > 0 && <span>{failed} 段查询失败</span>}
-      {total.unknownDistance && <span>含距离未知记录</span>}
-      {total.views.some((v) => v.expired) && <span>含上次估算</span>}
-      {total.views.some((v) => v.unsaved) && <span>含未保存结果</span>}
-    </p>
+        )}
+        {review > 0 && <span>{review} 段待确认</span>}
+        {failed > 0 && <span>{failed} 段查询失败</span>}
+        {total.unknownDistance && <span>含距离未知记录</span>}
+        {total.views.some((v) => v.expired) && <span>含上次估算</span>}
+        {total.views.some((v) => v.unsaved) && <span>含未保存结果</span>}
+      </p>
+    </div>
   )
 }

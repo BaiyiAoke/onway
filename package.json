@@ -21,11 +21,14 @@
     "android:debug": "npm run android:sync && powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-android.ps1"
   },
   "dependencies": {
+    "@amap/amap-jsapi-loader": "1.0.1",
     "@capacitor-community/sqlite": "^8.1.1",
     "@capacitor/android": "^8.5.1",
     "@capacitor/app": "^8.1.1",
     "@capacitor/app-launcher": "8.0.1",
     "@capacitor/core": "^8.5.1",
+    "@dnd-kit/dom": "0.5.0",
+    "@dnd-kit/react": "0.5.0",
     "dexie": "^4.4.5",
     "gcoord": "1.0.7",
     "lucide-react": "^1.43.0",
@@ -35,6 +38,7 @@
     "react-router-dom": "^7.18.3"
   },
   "devDependencies": {
+    "@amap/amap-jsapi-types": "0.0.15",
     "@capacitor/cli": "^8.5.1",
     "@eslint/js": "^10.0.1",
     "@testing-library/jest-dom": "^7.0.1",

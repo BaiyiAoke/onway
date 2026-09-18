@@ -44,8 +44,14 @@ function gcj(point: TransportPoint): string {
 }
 // 只转换接口提供的连续几何；不连接公交、铁路缺失的区间。
 function lines(value: unknown): [number, number][][] {
-  if (typeof value !== 'string' || !value) return []
-  const points = value.split(';').map((part) => part.split(',').map(Number))
+  // 公交 2.0 使用 polyline.polyline，驾车和独立步行仍直接返回坐标串。
+  const encoded = typeof value === 'string' ? value : obj(value).polyline
+  if (typeof encoded !== 'string' || !encoded.trim()) return []
+  const pairs = encoded.split(';').map((part) => part.split(','))
+  // 空坐标不能经 Number('') 变成 0，缺失数据时保留文字方案。
+  if (pairs.some((pair) => pair.length !== 2 || pair.some((n) => !n.trim())))
+    return []
+  const points = pairs.map((pair) => pair.map(Number))
   if (
     points.length < 2 ||
     points.some(

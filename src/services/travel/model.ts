@@ -7,6 +7,7 @@ import type {
   Trip,
   TripPlace,
   PlaceCategory,
+  PlacementSnapshot,
 } from './types'
 
 export function defaultCategories(): PlaceCategory[] {
@@ -134,7 +135,18 @@ function insertPlace(
   places: TripPlace[],
   place: TripPlace,
   afterPlaceId?: string,
+  beforePlaceId?: string | null,
 ) {
+  if (beforePlaceId !== undefined) {
+    if (afterPlaceId !== undefined) throw new Error('只能指定一个插入位置。')
+    const index =
+      beforePlaceId === null
+        ? places.length
+        : places.findIndex((p) => p.id === beforePlaceId)
+    if (index < 0) throw new Error('插入位置已改变，请重新选择。')
+    places.splice(index, 0, place)
+    return
+  }
   if (afterPlaceId === undefined) {
     places.push(place)
     return
@@ -172,6 +184,17 @@ function assertPlace(place: TripPlace) {
   }
 }
 
+export function placementSnapshot(trip: Trip): PlacementSnapshot {
+  return structuredClone({
+    days: trip.days.map((day) => ({
+      id: day.id,
+      placeIds: day.places.map((p) => p.id),
+    })),
+    unscheduledIds: trip.unscheduledPlaces.map((p) => p.id),
+    ...(trip.transport === undefined ? {} : { transport: trip.transport }),
+  })
+}
+
 // 动作只修改副本；持久化失败时调用方仍可继续使用原有已保存快照。
 // 可注入 ID 工厂，使动作测试无需依赖随机数。
 export function applyTravelAction(
@@ -179,6 +202,12 @@ export function applyTravelAction(
   action: TravelAction,
   createId: () => string = () => crypto.randomUUID(),
 ): TravelWorkspace {
+  // 拖动开始后的任何文档修改都使此次提交失效；路线缓存不属于旅行文档。
+  if (
+    (action.type === 'relocatePlace' || action.type === 'restorePlacement') &&
+    action.expected !== JSON.stringify(workspace)
+  )
+    throw new Error('旅行数据已改变，请重新移动；本次操作未保存。')
   const next = structuredClone(workspace)
   if (action.type === 'saveCategory') {
     const name = action.name.trim()
@@ -276,6 +305,43 @@ export function applyTravelAction(
   const trip = next.trips.find((item) => item.id === action.tripId)
   if (!trip) throw new Error('行程已不存在，请重新加载。')
   switch (action.type) {
+    case 'relocatePlace': {
+      const destination = targetPlaces(trip, action.dayId)
+      const found = locatePlace(trip, action.placeId)
+      if (!found) throw new Error('地点已不存在，请重新加载。')
+      if (action.beforePlaceId === action.placeId) {
+        if (found.places !== destination)
+          throw new Error('插入位置已改变，请重新选择。')
+        return next
+      }
+      found.places.splice(found.index, 1)
+      insertPlace(destination, found.place, undefined, action.beforePlaceId)
+      break
+    }
+    case 'restorePlacement': {
+      const saved = action.placement
+      const places = new Map(getGroupPlaces(trip, 'all').map((p) => [p.id, p]))
+      const ids = [
+        ...saved.days.flatMap((d) => d.placeIds),
+        ...saved.unscheduledIds,
+      ]
+      if (
+        JSON.stringify(saved.days.map((d) => d.id)) !==
+          JSON.stringify(trip.days.map((d) => d.id)) ||
+        ids.length !== places.size ||
+        new Set(ids).size !== ids.length ||
+        ids.some((id) => !places.has(id))
+      )
+        throw new Error('地点或日期已改变，无法撤销这次移动。')
+      saved.days.forEach((day, index) => {
+        trip.days[index].places = day.placeIds.map((id) => places.get(id)!)
+      })
+      trip.unscheduledPlaces = saved.unscheduledIds.map((id) => places.get(id)!)
+      // 撤销恢复完整交通快照，不能再次进行会把原关联拆开的关系调整。
+      if (saved.transport === undefined) delete trip.transport
+      else trip.transport = structuredClone(saved.transport)
+      return next
+    }
     case 'savePlaceCity': {
       const found = locatePlace(trip, action.placeId)
       if (
@@ -358,6 +424,7 @@ export function applyTravelAction(
           libraryPlaceId: place.id,
         },
         action.afterPlaceId,
+        action.beforePlaceId,
       )
       break
     }
@@ -397,6 +464,12 @@ export function applyTravelAction(
       }
       const destination = targetPlaces(trip, action.dayId)
       const found = locatePlace(trip, action.place.id)
+      if (
+        !found &&
+        action.preventDuplicate &&
+        getGroupPlaces(trip, 'all').some((p) => samePlace(p, action.place))
+      )
+        throw new Error('此行程中已有这个地点，请确认是否重复添加。')
       const place = {
         ...structuredClone(action.place),
         name: action.place.name.trim(),
@@ -412,7 +485,13 @@ export function applyTravelAction(
         if (found) {
           found.places.splice(found.index, 1)
           destination.push(place)
-        } else insertPlace(destination, place, action.afterPlaceId)
+        } else
+          insertPlace(
+            destination,
+            place,
+            action.afterPlaceId,
+            action.beforePlaceId,
+          )
       }
       break
     }

@@ -103,7 +103,12 @@ function AppShell({
   }, [])
 
   return (
-    <div className={styles.app}>
+    <div
+      className={
+        styles.app +
+        (location.pathname === '/plan' ? ' ' + styles.plannerShell : '')
+      }
+    >
       <BrowserNavigationGuard />
       <a
         className="skipLink"

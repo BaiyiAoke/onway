@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Search, Settings2, X } from 'lucide-react'
 import { EditPanel } from '../../components/EditPanel'
@@ -167,11 +167,13 @@ export function SearchPanel({
   visible = true,
   inline = false,
   onSelect,
+  renderActions,
   onClose = () => {},
 }: {
   visible?: boolean
   inline?: boolean
   onSelect: (place: SearchPlace) => void
+  renderActions?: (place: SearchPlace) => ReactNode
   onClose?: () => void
 }) {
   const [query, setQuery] = useState('')
@@ -342,12 +344,16 @@ export function SearchPanel({
               <h3>{place.name}</h3>
               <p>{place.address}</p>
               <div className={styles.actions}>
-                <button
-                  className="secondaryButton"
-                  onClick={() => onSelect(place)}
-                >
-                  选择此地点
-                </button>
+                {renderActions ? (
+                  renderActions(place)
+                ) : (
+                  <button
+                    className="secondaryButton"
+                    onClick={() => onSelect(place)}
+                  >
+                    选择此地点
+                  </button>
+                )}
                 <a
                   className="textButton"
                   href={place.sourceUrl}

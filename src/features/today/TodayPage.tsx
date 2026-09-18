@@ -183,6 +183,17 @@ export function TodayPage() {
             <GuardedLink
               className={styles.textLink}
               to="/plan"
+              state={
+                activeTrip && displayedDay
+                  ? {
+                      planReturn: {
+                        tripId: activeTrip.id,
+                        dayId: displayedDay.id,
+                        placeId: displayedDay.places[0]?.id ?? '',
+                      },
+                    }
+                  : undefined
+              }
               onNavigate={() => {
                 if (displayedDay) setGroup(displayedDay.id)
               }}
